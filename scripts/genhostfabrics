@@ -1,0 +1,8 @@
+#!/bin/bash
+TOPDIR=$(git rev-parse --show-toplevel)
+> $TOPDIR/machines/host-fabrics
+for i in $TOPDIR/machines/node-*; do
+	eval $(grep ^HOST_FABRICS $i)
+	RDMAHOST=$(basename $i)
+	echo "$RDMAHOST ${HOST_FABRICS[*]}" >> $TOPDIR/machines/host-fabrics
+done
