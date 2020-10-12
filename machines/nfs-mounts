@@ -1,0 +1,18 @@
+#!/bin/bash
+
+NFSServers="rdma-storage-01"
+declare -A NFSProtos
+NFSProtos[rdma-storage-01]="v3 v4.0 v4.1"
+declare -A NFSFabrics
+NFSFabrics[rdma-storage-01]="ib0 ib1 roce"
+declare -A NFSIntDevs
+NFSIntDevs[rdma-storage-01-ib0]="mlx4"
+NFSIntDevs[rdma-storage-01-ib1]="qib"
+NFSIntDevs[rdma-storage-01-roce]="mlx4"
+declare -A NFSMPoints
+NFSMPoints[rdma-storage-01]="xfs ext4"
+declare -A NFSMOpts
+NFSMOpts[v3]="nfs	defaults,rw,rdma,port=20049,hard,intr,nfsvers=3,noauto"
+NFSMOpts[v4.0]="nfs4	defaults,rw,rdma,port=20049,hard,intr,nfsvers=4.0,noauto"
+NFSMOpts[v4.1]="nfs4	defaults,rw,rdma,port=20049,hard,intr,nfsvers=4.1,noauto"
+

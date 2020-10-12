@@ -1,0 +1,20 @@
+#!/bin/sh
+#
+# Generate a new dhcpd.conf file from dhcpd.conf.base and all of the host
+# entries in hosts.d
+[ "$FLOCKER" != $0 ] && exec env FLOCKER="$0" flock -ew 5 "$0" "$0" "$@" || :
+pushd /etc/dhcp
+cp dhcpd.conf.base dhcpd.conf
+for i in hosts.d/*; do
+  grep 'fixed-address ;' $i &>/dev/null
+  [ $? -eq 0 ] && continue
+  grep 'hardware\|option' $i &>/dev/null
+  [ $? -eq 0 ] && cat $i >> dhcpd.conf
+done
+
+if [ -x /bin/systemctl ]; then
+  systemctl try-restart dhcpd.service
+else
+  /etc/init.d/dhcpd cond-restart
+fi
+
