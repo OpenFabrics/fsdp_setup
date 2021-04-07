@@ -1,13 +1,49 @@
+# Generally useful OS tools
+pciutils
+nfs-utils
+iscsi-initiator-utils
+git-all
+bash-completion
+vim-X11
+vim-enhanced
+
+# Overall RDMA tools
 libibverbs-utils
 librdmacm-utils
 infiniband-diags
 ibutils
+srptools
+
+# Driver specific packages
+libmlx4
+libmlx5
+libcxgb4
+libhfi1
+opa-ff
+opa-address-resolution
+opa-basic-tools
+libpsm2
+
+# Performance testers for RDMA
 qperf
 perftest
-pciutils
-nfs-utils
-iscsi-initiator-utils
-srptools
-git-all
-bash-completion
 
+# Additional packages...not in base RHEL, requires EPEL to be enabled
+perf
+iperf3
+uperf
+sockperf
+nuttcp
+netperf
+atop
+ftop
+htop
+iftop
+iotop
+latencytop-tui
+ntop
+numatop
+tiptop
+bonnie++
+dbench
+tiotest
