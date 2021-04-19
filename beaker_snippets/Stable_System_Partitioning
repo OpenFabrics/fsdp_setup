@@ -1,0 +1,224 @@
+zerombr
+clearpart --all --initlabel
+
+{#
+## Arch Specific Boot requirements
+##  this block needs to be here, it is not inherited from Stable_System snippet
+#}
+{% if re.search("-LE-?\d", distro.name) %}
+{% set distro_family_parsed = re.match("([a-zA-Z]+)-LE-?(\d+)?\.?(\d+)?", distro.name) %}
+{% set distro_family = distro_family_parsed.group(1) %}
+{% set distro_major_version_number = distro_family_parsed.group(2)|int %}
+{% elif re.search("-ALT-\d", distro.name) %}
+{% set distro_family_parsed = re.match("([a-zA-Z]+)-ALT-(\d+)?\.?(\d+)?", distro.name) %}
+{% set distro_family = distro_family_parsed.group(1) %}
+{% set distro_major_version_number = distro_family_parsed.group(2)|int %}
+{% else %}
+{% set distro_family_parsed = re.match("([a-zA-Z]+)-?(\d+)?\.?(\d+)?", distro.name) %}
+{% set distro_family = distro_family_parsed.group(1) %}
+{% set distro_major_version_number = distro_family_parsed.group(2)|int %}
+{% endif %}
+{% if re.search("-U\d+", distro.name) %}
+{% set temp = re.search("-U(\d+)", distro.name) %}
+{% set distro_minor_version_number = temp.group(1)|int %}
+{% elif re.search("-GOLD", distro.name) %}
+{% set distro_minor_version_number = 0 %}
+{% elif re.search("\d+\.(\d+)", distro.name) %}
+{% set temp = re.search("\d+\.(\d+)", distro.name) %}
+{% set distro_minor_version_number = temp.group(1)|int %}
+{% else %}
+{% set distro_minor_version_number = distro_family_parsed.group(3)|int %}
+{% endif %}
+{% set distro_variant = distro_tree.variant %}
+
+{% if partitions or ondisk %}
+
+{% if var('kernel_options_post') is defined %}
+# kernel_options_post
+bootloader --append="{{ kernel_options_post }}"
+{% endif %}
+
+
+{% if distro_tree is arch('aarch64') %}
+# arch aarch64
+{% if var('boot_partition_size') is defined %}
+# set Boot Partition Size: {{ boot_partition_size }}
+part /boot/efi --fstype vfat --size 200 --recommended
+{%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+
+part /boot --fstype ext3 --size {{ boot_partition_size }}
+{%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% else %}
+part /boot/efi --fstype vfat --size 200 --recommended
+{%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+
+part /boot --fstype ext3 --size 2048 --recommended
+{%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% endif %}
+
+{% elif distro_tree is arch('ppc64le') %}
+# arch ppc64le
+{% if var('boot_partition_size') is defined %}
+part None --fstype 'PPC PReP Boot' --size 10
+# set Boot Partition Size: {{ boot_partition_size }}
+part /boot --fstype xfs --size {{ boot_partition_size }}
+{%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% else %}
+part None --fstype 'PPC PReP Boot' --size 10
+part /boot --fstype xfs --size 2048 --recommended
+{%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% endif %}
+
+{% elif distro_tree is arch('ppc', 'ppc64') %}
+# arch ppc64
+{% if var('boot_partition_size') is defined %}
+part None --fstype 'PPC PReP Boot' --size 8
+# set Boot Partition Size: {{ boot_partition_size }}
+part /boot --fstype ext4 --size {{ boot_partition_size }}
+{%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% else %}
+part None --fstype 'PPC PReP Boot' --size 8
+part /boot --fstype ext3 --size 2048 --recommended
+{%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% endif %}
+
+{% elif distro_major_version_number == 7 %}
+# Distro Major 7
+{% if var('boot_partition_size') is defined %}
+# set Boot Partition Size: {{ boot_partition_size }}
+part /boot --fstype ext4 --size {{ boot_partition_size }}
+{%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% else %}
+part /boot --fstype ext4 --size 2048
+{%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% endif %}
+
+{% elif distro_major_version_number == 8 %}
+# Distro Major 8
+{% if var('boot_partition_size') is defined %}
+# set Boot Partition Size: {{ boot_partition_size }}
+part /boot --fstype ext4 --size {{ boot_partition_size }}
+{%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% else %}
+part /boot --fstype ext4 --size 2048
+{%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% endif %}
+
+{% else %}
+# Default settings
+{% if var('boot_partition_size') is defined %}
+# set Boot Partition Size: {{ boot_partition_size }}
+part /boot --fstype ext3 --size {{ boot_partition_size }}
+{%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% else %}
+part /boot --fstype ext3 --size 500 --recommended
+{%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% endif %}
+{% endif %}
+
+{% if cpart is defined %}
+{% for cpart_stanza in cpart|split(';') %}
+{% set cparts = cpart_stanza|dictsplit %}
+{% if 'dev_nums' in cparts and 'base_dev' in cparts and 'part' in cparts and 'fstype' in cparts and re.search("^(dasd|sd|hd)([a-z])", cparts['base_dev']) and 'type' in cparts %}
+{% set temp = re.search("^(dasd|sd|hd)([a-z])", cparts['base_dev']) %}
+{% if cparts['type'] == 'mdraid' %}
+{% set r = loop.index0 %}
+{% for i in range(cparts['dev_nums']|int) %}
+part raid.{{ r }}{{ i }} --size {{ cparts['size']|default('64 --grow') }} --ondisk={{ temp.group(1) }}{{ chr(ord(temp.group(2)) + i) }}
+{% endfor %}
+raid {{ cparts['part'] }} --fstype={{ cparts['fstype'] }} --device=md{{ r }} --level=RAID{{ cparts['raid_lvl']|default('0') }}
+{%- for i in range(cparts['dev_nums']|int) %} raid.{{ r }}{{ i }}{% endfor %}
+
+{% elif cparts['type'] == 'lvm' %}
+
+{% else %}
+part {{ cparts['part'] }} --fstype {{ cparts['fstype'] }} --size {{ cparts['size']|default('64 --grow') }} --ondisk {{ cparts['base_dev'] }}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% else %}
+
+# Basic root Filesystem plus Swap
+{% if var('optimize-virt') is defined %}
+# No Swap Partition, we'll let the hypervisor manage that.
+{% else %}
+part swap --fstype swap --recommended
+{% endif %}
+{% if distro_tree is arch('x86_64') %}
+# Distribution Major Version: {{ distro_major_version_number }}
+{% if distro_major_version_number == 4 %}
+# Got RHEL 4 x86_64
+part / --fstype ext3 --size 1024 --grow --asprimary
+{% else %}
+part / --fstype ext4 --size 1024 --grow --asprimary
+{% endif %}
+{% elif distro_tree is arch('ppc64le') %}
+part / --fstype xfs --size 1024 --grow --asprimary
+{% else %}
+part / --fstype ext3 --size 1024 --grow --asprimary
+{% endif %}
+{%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% endif %}
+
+{#
+## Loop through partitions variable and create appropriate part commands
+## partitions=rhel5_pv_guest.img:lvm:10;rhel5_hvm_guest.img:lvm:10
+#partitions = /mnt/block1:part:1;mylvm:lvm:5;/mnt/block4ext4:part:1:ext4dev;mylvm4ext4:lvm:5:ext4dev;/mnt/block2:part:1;/mnt/block24ext4:part:1:ext4dev;mylvm2:lvm:5; 
+# (ext4dev is the fstype in some of them in the above example)
+#}
+{% set is_lvm = 0 %}
+{% for _partition in partitions|default('')|split(';') %}
+{% set partition = _partition|split(':') %}
+{% if partition|length >= 3 %}
+{% set size = partition[2]|int * 1024 %}
+{% if partition|length > 3 %}
+{% set fstype = partition[3] %}
+{% else %}
+{% set fstype = 'ext3' %}
+{% endif %}
+{% set partname = partition[0].lstrip('/') %}
+{% if partition[1] == 'part' %}
+part /{{ partname }} --fstype {{ fstype }} --size={{ size }}
+{% elif partition[1] == 'lvm' %}
+{% set is_lvm = is_lvm + 1 %}
+{% set lvmname = partname.replace('/', '_') %}
+{% set part_size = size + 5 %}
+part pv.00{{ is_lvm }} --size={{ part_size }}
+volgroup TestVolume00{{ is_lvm }} pv.00{{ is_lvm }}
+logvol /{{ partname }} --fstype {{ fstype }} --name={{ lvmname }} --vgname=TestVolume00{{ is_lvm }} --size={{ size }}
+{% endif %}
+{% endif %}
+{% endfor %}
+
+{% else %}
+{% if distro_tree is arch('x86_64') %}
+{% if var('optimize-virt') is defined %}
+# No Swap Partition, we'll let the hypervisor manage that.
+{% else %}
+part swap --fstype swap --recommended
+{%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% endif %}
+
+# Default settings
+{% if var('boot_partition_size') is defined %}
+# set Boot Partition Size: {{ boot_partition_size }}
+part /boot --fstype ext3 --size {{ boot_partition_size }} {% if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% else %}
+part /boot --fstype ext3 --size 500 --recommended {% if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% endif %}
+
+# Distribution Major Version: {{ distro_major_version_number }}
+{% if distro_major_version_number == 4 %}
+# Got RHEL 4 x86_64
+part / --fstype ext3 --size 1024 --grow --asprimary {%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% else %}
+part / --fstype ext4 --size 1024 --grow --asprimary {%- if ondisk %} --ondisk={{ ondisk }}{% endif %}
+{% endif %}
+
+{% else %}
+{#
+## No special partitions requested. Let Anaconda do what it thinks is right.
+#}
+autopart
+{% endif %}
+{% endif %}
