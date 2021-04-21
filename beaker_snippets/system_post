@@ -1,5 +1,0 @@
-cd /root
-git clone -a git://github.com/OpenFabrics/fsdp_setup
-cp fsdp_setup/rdma-setup.sh .
-chmod +x ./rdma-setup.sh
-./rdma-setup.sh --src /root/fsdp_setup
