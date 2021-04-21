@@ -1,2 +1,0 @@
-repo --name=epel --mirrorlist=https://mirrors.fedoraproject.org/mirrorlist?repo=epel-8&arch=x86_64 --install --noverifyssl
-
