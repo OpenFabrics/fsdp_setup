@@ -1,9 +1,7 @@
 #!/bin/bash
 
-#get_file machines/wwns
-#get_file machines/nfs-mounts
-source ./machines/wwns
-source ./machines/nfs-mounts
+get_file machines/wwns
+get_file machines/nfs-mounts
 
 ###########################################################################
 #
