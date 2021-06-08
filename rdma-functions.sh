@@ -2,21 +2,57 @@
 
 get_file machines/wwns
 get_file machines/nfs-mounts
-source ./wwns
-source ./nfs-mounts
+
+###########################################################################
+#
+# Network Specifications
+#
+# The following variables define the network setup of the cluser
+# on the fabics, etc.
+###########################################################################
+
+# If set, this will set the domain-name option in the DHCP 
+# and interface configurations
+domain_name="ofa.iol.unh.edu"
+
+# If set, this will set the DNS servers optins in the DHCP and 
+# interface configurations
+domain_name_servers=("10.12.2.254")
+
+# IPv4 prefix for fabric neworks (i.e. 172.31.x.0/24)
+network_prefix="172.31" 
+
+# Networks (IPMI, lights-out, etc.) used in the lab
+lab_networks="10.12.0.0/16"
+
 
 # Defines of all our network fabrics so we don't have to define these
-# in multiple places
-ib0_2k_nets=(ib0 ib0.2 ib0.4 ib0.6 ib0.8)
-ib0_4k_nets=(ib0.10 ib0.12 ib0.14 ib0.16)
+# in multiple places.  Format is, label.subnet, where subnet is defined
+# as x in the network prefix above.  As many or as few as 1 network can be 
+# defined as needed.  Note, all fabric IPv4 networks are assumed to be /24 size.
+
+# Infiniband Fabric 1
+ib0_2k_nets=(ib0 ib0.2 ib0.4 ib0.6)
+#ib0_4k_nets=(ib0.10 ib0.12 ib0.14 ib0.16)
 ib0_nets=(${ib0_2k_nets[*]} ${ib0_4k_nets[*]})
-ib1_2k_nets=(ib1 ib1.3 ib1.5 ib1.7)
-ib1_4k_nets=(ib1.9 ib1.11 ib1.13)
-ib1_nets=(${ib1_2k_nets[*]} ${ib1_4k_nets[*]})
-opa0_nets=(opa0 opa0.22 opa0.24)
-opa1_nets=(opa1 opa1.23 opa1.25)
+
+# InfiniBand Fabric 2
+#ib1_2k_nets=(ib1 ib1.3 ib1.5 ib1.7)
+#ib1_4k_nets=(ib1.9 ib1.11 ib1.13)
+#ib1_nets=(${ib1_2k_nets[*]} ${ib1_4k_nets[*]})
+
+# OmniPath Fabric 1
+opa0_nets=(opa0 opa0.22)
+
+# OmniPath Fabric 2
+#opa1_nets=(opa1 opa1.23 opa1.25)
+
+# ROCE Fabric 1
 roce_nets=(roce roce.43 roce.45)
+
+# iWARP Fabric 1
 iw_nets=(iw iw.51 iw.52)
+
 all_nets=(${ib0_nets[*]} ${ib1_nets[*]} ${opa0_nets[*]} ${opa1_nets[*]} ${roce_nets[*]} ${iw_nets[*]})
 
 __restart_config_options() {
@@ -103,11 +139,11 @@ Setup_SSH() {
 		[ -f authorized_keys2 ] && cp authorized_keys2 beaker_installed_key2.pub || touch beaker_installed_key2.pub
 	fi
 	cp beaker_installed_key.pub authorized_keys
-	echo -n "from=\"rdma-*,ib?-*,opa*,roce*,iw*,172.31.0.0/16,10.16.40.0/21\" " >> authorized_keys
+	echo -n "from=\"rdma-*,ib?-*,opa*,roce*,iw*,${network_prefix}.0.0/16,${lab_networks}\" " >> authorized_keys
 	cat rdma-root.pub >> authorized_keys
 	if [ "$OS" = "rhel" -a "$RELEASE" -lt 7 ]; then
 		cp beaker_installed_key2.pub authorized_keys2
-		echo -n "from=\"rdma-*,ib?-*,opa*,roce*,iw*,172.31.0.0/16,10.16.40.0/21\" " >> authorized_keys
+		echo -n "from=\"rdma-*,ib?-*,opa*,roce*,iw*,${network_prefix}.0.0/16,${lab_networks}\" " >> authorized_keys
 		cat rdma-root.pub >> authorized_keys2
 	fi
 	chmod 600 authorized_keys*
@@ -649,7 +685,7 @@ Create_Rdma_Interfaces() {
 		if [ "$4" = "dhcp" ]; then
 			BP=dhcp
 		else
-			BP="static 172.31.$net.$4"
+			BP="static ${network_prefix}.$net.$4"
 		fi
 		if [ "$TYPE" = "InfiniBand" ]; then
 			if [ -z "$CM" ]; then
@@ -754,7 +790,7 @@ BEGIN {
 			if (($i, j) in net) {
 				net_ip = j
 				net_name = net[$i, j]
-				printf("172.31.%d.%d\t\t%s-%s\n", net_ip,
+				printf("'"${network_prefix}"'.%d.%d\t\t%s-%s\n", net_ip,
 					host_ip, net_name, host_part)
 			}
 		}
@@ -871,7 +907,7 @@ Setup_Nfs_Exports() {
 		mkdir -p /srv/NFSoRDMA/$export
 		mount /srv/NFSoRDMA/$export
 		sed -e '/'"${export}"'/ d' -i /etc/exports
-		echo "/srv/NFSoRDMA/$export	172.31.0.0/16(rw,async,insecure,no_root_squash,mp) rdma-*(rw,async,insecure,no_root_squash,mp)" >> /etc/exports
+		echo "/srv/NFSoRDMA/$export	${network_prefix}.0.0/16(rw,async,insecure,no_root_squash,mp) rdma-*(rw,async,insecure,no_root_squash,mp)" >> /etc/exports
 	done
 }
 
@@ -1550,14 +1586,17 @@ EOF
 	for subnet in ${all_nets[*]}; do
 		__get_net_from_subnet $subnet
 		echo "# subnet $subnet" >> $out
-		echo "subnet 172.31.$net.0 netmask 255.255.255.0 {" >> $out
+		echo "subnet ${network_prefix}.$net.0 netmask 255.255.255.0 {" >> $out
 		echo "	authoritative;" >> $out
 		echo "" >> $out
-		echo "	# option routers 172.31.$net.254;" >> $out
+		echo "	# option routers ${network_prefix}.$net.254;" >> $out
 		echo "	option subnet-mask 255.255.255.0;" >> $out
-		echo "	range 172.31.$net.240 172.31.$net.252;" >> $out
-		echo "	# option domain-name \"lab.bos.redhat.com\";" >> $out
-		echo "	# option domain-name-servers 10.16.36.29,10.11.5.19,10.5.30.160;" >> $out
+		echo "	range ${network_prefix}.$net.240 ${network_prefix}.$net.251;" >> $out
+		[ -n ${domain_name+x} ] && echo "	option domain-name \"${domain_name}\";" >> $out
+		if [ -n ${domain_name_servers[0]+x} ]; then 
+			local ns_string="${domain_name_servers[*]}"
+			echo "	option domain-name-servers ${ns_string//${IFS:0:1}/,};" >> $out
+		fi
 		echo "	# option time-offset	-18000; #EST" >> $out
 		echo "	default-lease-time	3600; #1 hour so we see problems faster" >> $out
 		echo "	max-lease-time		7200;" >> $out
@@ -1575,25 +1614,28 @@ Setup_Dhcp_Server() {
 	fi
 	# We need to create an iptables setup that blocks all dhcp traffic on
 	# the lab network interface
-	eth0=lom_1
-	eth=lom_+
-	cat << EOF > /etc/sysconfig/iptables
-# Manually created firewall rules, do not run any firewall rules editing
-# programs or these rules will be lost
+	#
+	# FSDP lab is running firewalld on all non-test-nodes, removing this.
+# 	eth0=lom_1
+# 	eth=lom_+
+# 	cat << EOF > /etc/sysconfig/iptables
+# # Manually created firewall rules, do not run any firewall rules editing
+# # programs or these rules will be lost
 
-# We must take special care to make sure that the dhcp server we will be
-# running won't attempt to respond to anything on the test lab network
-*filter
-:INPUT ACCEPT [0:0]
-:FORWARD ACCEPT [0:0]
-:OUTPUT ACCEPT [0:0]
--A OUTPUT -p tcp -m tcp --sport bootps -o $eth0 -j REJECT
--A OUTPUT -p udp -m udp --sport bootps -o $eth0 -j REJECT
-COMMIT
-EOF
-	Enable_Service iptables
-	Disable_Service ip6tables
-	Disable_Service firewalld
+# # We must take special care to make sure that the dhcp server we will be
+# # running won't attempt to respond to anything on the test lab network
+# *filter
+# :INPUT ACCEPT [0:0]
+# :FORWARD ACCEPT [0:0]
+# :OUTPUT ACCEPT [0:0]
+# -A OUTPUT -p tcp -m tcp --sport bootps -o $eth0 -j REJECT
+# -A OUTPUT -p udp -m udp --sport bootps -o $eth0 -j REJECT
+# COMMIT
+# EOF
+# 	Enable_Service iptables
+# 	Disable_Service ip6tables
+# 	Disable_Service firewalld
+
 	# Get our dhcpd.conf file and turn on dhcpd
 	$INSTALL dhcp
 	pushd /etc/dhcp >/dev/null
