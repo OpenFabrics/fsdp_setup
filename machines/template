@@ -4,12 +4,6 @@
 # Mandatory
 RDMA_HOST=<short hosname>
 
-# Mandatory and must be after RDMA_HOST.  Also has a hard requirement
-# that the /etc/hosts file has been updated already, which is why the
-# machine description scripts come after sourcing of rdma-functions.sh
-# in the main rdma-setup.sh file.
-Set_Hostpart
-
 # Optional, highly discouraged, please use the beaker settings to
 # control this instead if at all possible, but if not...
 #
@@ -31,9 +25,6 @@ HOST_FABRICS=()
 # the system creates on install so we can use our simple, descriptive
 # names like lom_1, lom_2, lab-bridge0, etc.
 Clear_Default_Interfaces
-
-# Mandatory and needs to be after Set_Hostpart
-Setup_SSH
 
 ##  Create Test Lab Network Interface Config Files
 #
@@ -170,16 +161,6 @@ Setup_Nfs_Client_Mounts
 ##  Server Specific Settings
 # Various optional server setup routines.  Many of these are specific to
 # a given machine or machines and will refuse to run on others.
-
-# Deprecated.  We are using the switch SMs now.  Left here in case we
-# switch back to running opensm
-#Setup_Opensm
-
-# Setup opafm.  Only used on rdma-master
-#Setup_Opafm
-
-# Setup for being a dhcp server, only used on rdma-master and rdma-storage-01
-#Setup_Dhcp_Server
 
 # Setup_Nfs_Server - Optional.  Only good on already defined NFSoRDMA
 #   servers.  Requires that this host be enumerated in the arrays in the
