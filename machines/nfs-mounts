@@ -1,16 +1,16 @@
 #!/bin/bash
 
-NFSServers="rdma-storage-01"
+NFSServers="builder-00"
 declare -A NFSProtos
-NFSProtos[rdma-storage-01]="v3 v4.0 v4.1"
+NFSProtos[builder-00]="v3 v4.0 v4.1"
 declare -A NFSFabrics
-NFSFabrics[rdma-storage-01]="ib0 ib1 roce"
+NFSFabrics[builder-00]="ib0 opa0 roce"
 declare -A NFSIntDevs
-NFSIntDevs[rdma-storage-01-ib0]="mlx4"
-NFSIntDevs[rdma-storage-01-ib1]="qib"
-NFSIntDevs[rdma-storage-01-roce]="mlx4"
+NFSIntDevs[builder-00-ib0]="mlx5"
+NFSIntDevs[builder-00-opa0]="hfi1"
+NFSIntDevs[builder-00-roce]="mlx5"
 declare -A NFSMPoints
-NFSMPoints[rdma-storage-01]="xfs ext4"
+NFSMPoints[builder-00]="xfs ext4"
 declare -A NFSMOpts
 NFSMOpts[v3]="nfs	defaults,rw,rdma,port=20049,hard,intr,nfsvers=3,noauto"
 NFSMOpts[v4.0]="nfs4	defaults,rw,rdma,port=20049,hard,intr,nfsvers=4.0,noauto"
