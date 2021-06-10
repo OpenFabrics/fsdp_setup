@@ -771,20 +771,14 @@ Setup_FSDP_Mounts() {
 Setup_Nfs_Client_Mounts() {
 	local opt_tag="RDMA nfs client mounts"
 	__restart_config_options /etc/fstab "$opt_tag"
-	if [ "$RDMA_HOST" != "rdma-master" ]; then
-		# Everyone mounts /srv/repos via ethernet
-		mkdir -p /srv/rdma-master/repos
-		__write_config_option /etc/fstab "rdma-master:/srv/NFSoRDMA/repos	/srv/rdma-master/repos	nfs4	defaults,rw,tcp,hard,intr,nfsvers=4.1,noauto"
-	fi
 	for server in $NFSServers; do
 		[ "$server" = "$RDMA_HOST" ] && continue
-		sserver=`echo $server | cut -f 2- -d '-' -`
 		for fabric in ${NFSFabrics[$server]}; do
 			__if_x_in_y "$fabric" "${HOST_FABRICS[*]}" || continue
 			for ver in ${NFSProtos[$server]}; do
 				for mpt in ${NFSMPoints[$server]}; do
 					mkdir -p /srv/$server/$fabric/$ver-$mpt-${NFSIntDevs[$server-$fabric]}
-					__write_config_option /etc/fstab "${fabric}-$sserver:/srv/NFSoRDMA/$ver-$mpt	/srv/$server/$fabric/$ver-$mpt-${NFSIntDevs[$server-$fabric]}	${NFSMOpts[$ver]}"
+					__write_config_option /etc/fstab "${fabric}-$server:/srv/NFSoRDMA/$ver-$mpt	/srv/$server/$fabric/$ver-$mpt-${NFSIntDevs[$server-$fabric]}	${NFSMOpts[$ver]}"
 				done
 			done
 		done
@@ -1223,132 +1217,10 @@ EOF
 }
 
 Install_Packages() {
-	# XXX: We have to jump through hoops here.  The update to dnf in
-	# the latest fedora changed how yum/dnf works in regards to
-	# broken packages.  Namely, --skip-broken is now the default, but
-	# it isn't identical to the old version in yum in that in yum
-	# if you list 10 packages on an install command, and you include
-	# --skip-broken, and it only find matches for 7 of the 10 packages
-	# you listed, then it installs those 7 and skips the 3 that weren't
-	# found.  The new dnf no longer has --skip-broken, it is supposed
-	# to be the default behavior, but if you list packages on the
-	# command line that aren't found, then it aborts the entire
-	# transaction.  This is a pain in the butt for us because we run
-	# this script on Fedora and RHEL and from releases both old and
-	# new, and the same set of packages do not exist in all these
-	# different versions.  So, now, for any package that might not
-	# exist in some of the versions, we have run it in a command by
-	# itself or risk having it cause other packages not to get
-	# installed.
-
-	# If we are rhel5 or earlier, OFED specific packages
-	if [ $OS = "rhel" -a $RELEASE -lt 6 ]; then
-		$INSTALL openib "ofed*" "openib-*" "libsdp*"
-	else
-		$INSTALL rdma mstflint
-	fi
-	# the very core packages available on all release
-	$INSTALL pciutils nfs-utils libibverbs libibverbs-utils libibverbs-devel librdmacm librdmacm-utils librdmacm-devel libibcm libmthca libmlx4 libipathverbs libcxgb3 openmpi openmpi-devel qperf perftest infiniband-diags ibutils iscsi-initiator-utils rpmdevtools
-
-	# packages we need to do one at a time in case they don't exist
-	# somewhere
-	if [ "$SPLIT_INSTALLS" = "yes" ]; then
-		$INSTALL libcxgb4
-		$INSTALL libmlx5
-		$INSTALL libocrdma
-		$INSTALL libusnic_verbs
-		$INSTALL srptools
-		$INSTALL rds-tools
-		$INSTALL ibacm-devel
-		$INSTALL opa-basic-tools opa-ff opa-fastfabric opa-address-resolution
-		$INSTALL dapl-utils compat-dapl-utils mvapich-devel mvapich2-devel mpitests
-	else
-		$INSTALL libcxgb4 libmlx5 libocrdma libusnic_verbs srptools rds-tools ibacm-devel dapl-utils compat-dapl-utils mvapich-devel mvapich2-devel mpitests
-	fi
-	if [ -f /etc/srp_daemon.conf ]; then
-		echo "d" >> /etc/srp_daemon.conf
-	fi
-	# The new hfi1 stuff and the old qib stuff can't coexist on the same
-	# system due to soname conflicts between infinipath-psm and libpsm2
-	# Only install the qib stuff if we have a qib card, otherwise install
-	# the opa stuff
-	QIB=`lspci | grep "InfiniBand: QLogic Corp. IBA"`
-	if [ -z "$QIB" ]; then
-		$INSTALL infinipath-psm openmpi-psm-devel mvapich-psm-devel mvapich2-psm-devel
-	else
-		$INSTALL libhfi1 opa-ff opa-fm opa-address-resolution opa-basic-tools libpsm2
-	fi
-
-	# Try to get git before installing the epel repo as that sometimes
-	# breaks git checkouts
-	$INSTALL "git*" strace ltrace oprofile systemtap diffstat xorg-x11-xauth psmisc bash-completion grubby
-
-	if [ -d /etc/rdma ]; then
-		RDMA_PATH=/etc/rdma
-		RDMA_CONFIG=/etc/rdma/rdma.conf
-	else
-		RDMA_PATH=/etc/ofed
-		RDMA_CONFIG=/etc/ofed/openib.conf
-	fi
-
-	__install_additional_repos
-
-	# Install a few other things that it would be nice to have,
-	# probably come from different repos depending on release,
-	# and that we don't want a failure to get these items to screw
-	# up the install
-	$INSTALL "scsi-target*"
-	$INSTALL "tgtd*"
-	$INSTALL vconfig
-	[ $OS = "rhel" -a $RELEASE -eq 6 ] && \
-		(get_file pkg_overrides/rhel/6/noarch/python-decoratortools-1.7-4.1.el6.noarch.rpm
-		 $INSTALL ./python-decoratortools-1.7-4.1.el6.noarch.rpm)
-	$INSTALL "fedpkg*"
-	[ $OS = "rhel" -a $RELEASE -lt 7 ] && \
-		($INSTALL "git*"
-		 $INSTALL bash-completion)
-
-	# Most of these are in Fedora/EPEL, but not in RHEL.  Install them
-	# before we disable EPEL.  For pre-release RHEL products, we will
-	# likely need manual overrides until EPEL exists for that release
-	if [ "$SPLIT_INSTALLS" = "yes" ]; then
-		for i in iperf iperf3 uperf sockperf nuttcp netperf atop ftop htop iftop iotop latencytop-tui ntop numatop tiptop bonnie++ dbench tiotest device-mapper-multipath; do
-			$INSTALL $i
-		done
-	else
-		$INSTALL iperf iperf3 uperf sockperf nuttcp netperf atop ftop htop iftop iotop latencytop-tui ntop numatop tiptop bonnie++ dbench tiotest device-mapper-multipath
-	fi
-
 	# Assuming we got git, and we have bash-completion,
 	# try to link the bash completion for git_ps1
 	[ -d /etc/bash_completion.d -a -f /usr/share/git-core/contrib/completion/git-prompt.sh ] && ln -sf ../../usr/share/git-core/contrib/completion/git-prompt.sh /etc/bash_completion.d/
 
-	__enable_repo rhpkg
-	[ $OS = "rhel" -a $RELEASE -lt 6 ] || \
-		$INSTALL rhpkg
-	[ $OS = "rhel" -a $RELEASE -lt 6 ] && \
-		$INSTALL rhpkg-simple
-	__disable_repo rhpkg
-
-	$INSTALL brew brewkoji
-
-	# OpenSM should not be installed at this point, but just in case it
-	# is, disable it
-	Disable_Service opensm
-	Disable_Service opensmd
-	#turn on rdma/openibd
-	Enable_Service openib
-	Enable_Service openibd
-	Enable_Service rdma
-	Disable_Service ibacm
-	if [ $OS = rhel -a $RELEASE -lt 7 ]; then
-		Enable_Service network
-		Disable_Service NetworkManager
-	else
-		Disable_Service network
-		Enable_Service NetworkManager
-		$INSTALL NetworkManager-tui
-	fi
 	Disable_Service cpuspeed
 	sed -e 's/SRP_LOAD=no/SRP_LOAD=yes/;s/ISER_LOAD=no/ISER_LOAD=yes/;s/RDS_LOAD=yes/RDS_LOAD=no/;s/LOAD_RDS.*/RDS_LOAD=no/;s/TECH_PREVIEW_LOAD.*/TECH_PREVIEW_LOAD=yes/' -i $RDMA_CONFIG
 
@@ -1357,224 +1229,6 @@ Install_Packages() {
 	Disable_Service firewalld
 	Disable_Service iptables
 	Disable_Service ip6tables
-}
-
-Install_Virt_Packages() {
-	$INSTALL "libvirt*" "qemu*" "virt*" "libguestfs*" "cyrus*"
-	Enable_Service libvirtd
-        local status=$(mktemp)
-	virsh vol-list --pool default > $status 2>&1
-	grep "failed to connect" $status >/dev/null 2>&1
-	libv_running=$?
-	rm -f $status
-	# Enable remote control of virtual machines
-	sed -e 's/#listen_tls = .*/listen_tls = 0/;s/#listen_tcp = .*/listen_tcp = 1/;s/#auth_tcp = .*/auth_tcp = "sasl"/;s/#keepalive_count = .*/keepalive_count = 50/' -i /etc/libvirt/libvirtd.conf
-	sed -e 's/#LIBVIRTD_ARGS="--listen"/LIBVIRTD_ARGS="--listen"/' -i /etc/sysconfig/libvirtd
-	saslpasswd2 -d -a libvirt rdma-virt
-	echo "rdma-virt-passwd" | saslpasswd2 -c -p -a libvirt rdma-virt
-	[ $libv_running -eq 1 ] && Restart_Service libvirtd
-}
-
-Clear_Virt_Default_Network() {
-	if [ $libv_running -eq 1 ]; then
-		# In case libvirt is running, issue these commands
-		virsh net-destroy Default
-		virsh net-undefine Default
-		virsh net-destroy default
-		virsh net-undefine default
-	else
-		# But this is what will do the trick during %post
-		rm -f /etc/libvirt/qemu/networks/autostart/Default.xml
-		rm -f /etc/libvirt/qemu/networks/Default.xml
-		rm -f /etc/libvirt/qemu/networks/autostart/default.xml
-		rm -f /etc/libvirt/qemu/networks/default.xml
-	fi
-}
-
-Copy_Virt_Domains() {
-	pushd /root >/dev/null
-	mkdir -p libvirt/images
-	pushd libvirt >/dev/null
-	rm -f *.xml
-	get_dir libvirt/$RDMA_HOST/ .xml
-	# libvirtd isn't running, safe to remove domains the easy way
-	[ $libv_running -eq 0 ] && rm -f /etc/libvirt/qemu/{autostart/*,*.xml}
-	[ $libv_running -eq 1 ] && for i in *.xml; do
-			virsh destroy `basename $i .xml`
-			virsh undefine `basename $i .xml`
-		done
-	pushd images >/dev/null
-	rm -f *.xml
-	get_dir libvirt/$RDMA_HOST/images/ .xml
-	# libvirtd isn't running, safe to remove image files the easy way
-	[ $libv_running -eq 0 ] && rm -f /var/lib/libvirt/images/*
-	[ $libv_running -eq 1 ] && for i in *.xml; do
-			virsh vol-delete --pool default `basename $i .xml`.qcow2
-			virsh vol-create --pool default --file $i
-		done
-	popd >/dev/null
-	[ $libv_running -eq 1 ] && for i in *.xml; do
-			virsh define $i
-		done
-	[ $libv_running -eq 0 ] && sed -e '/Start one time virt setup script/,/End one time virt setup script/d' -i /etc/rc.d/rc.local
-	[ $libv_running -eq 0 ] && cat >> /etc/rc.d/rc.local <<EOF
-# Start one time virt setup script
-libv_running=0
-passes=0
-while [ \$libv_running -eq 0 ]; do
-	virsh vol-list --pool default > .tmp.status 2>&1
-	grep "failed to connect" .tmp.status >/dev/null 2>&1
-	libv_running=\$?
-	rm -f .tmp.status
-	[ \$passes -eq 0 ] && let passes++ || ( let passes++; sleep 1 )
-	[ \$passes -gt 20 ] && exit 1
-done
-
-pushd /root/libvirt >/dev/null
-pushd images >/dev/null
-for i in *.xml; do
-	virsh vol-create --pool default --file \$i
-done
-popd >/dev/null
-for i in *.xml; do
-	virsh define \$i
-done
-popd >/dev/null
-sed -e '/Start one time virt setup script/,/End one time virt setup script/d' -i /etc/rc.d/rc.local
-# End one time virt setup script
-EOF
-	chmod +x /etc/rc.d/rc.local
-	popd >/dev/null
-	popd >/dev/null
-}
-
-Install_Override_Packages() {
-	rm -fr pkg_override
-	mkdir pkg_override
-	pushd pkg_override >/dev/null
-	get_dir pkg_overrides/$OS/$RELEASE/`uname -p`/ .rpm
-	get_dir pkg_overrides/$OS/$RELEASE/noarch/ .rpm
-	shopt -s nullglob
-	if [ -n "./*" ]; then
-		$INSTALL ./*
-	fi
-	shopt -u nullglob
-	popd >/dev/null
-}
-
-Enable_IP_Forwarding() {
-	cur=`grep ip_forward /etc/sysctl.conf`
-	if [ -n "$cur" ]; then
-		sed -e 's/net\.ipv4\.ip_forward.*=.*0/net\.ipv4\.ip_forward = 1/' -i /etc/sysctl.conf
-	else
-		echo "net.ipv4.ip_forward = 1" > /etc/sysctl.d/ip_forward
-	fi
-}
-
-Setup_Opensm() {
-	# Install the opensm program
-	$INSTALL opensm
-	# turn opensm on rdmamaster only.
-	Enable_Service opensm
-	Enable_Service opensmd
-	get_file opensm.conf-$RDMA_HOST
-	mv opensm.conf{-$RDMA_HOST,}
-	get_file partitions.conf
-	rm -f $RDMA_PATH/opensm.conf*
-	rm -f $RDMA_PATH/partitions*.conf
-	mv opensm.conf $RDMA_PATH
-	mv partitions.conf $RDMA_PATH
-	mkdir -p /var/log/opensm/ib1
-}
-
-Setup_Opafm() {
-	$INSTALL opa-fm
-	$INSTALL opa-fmgui
-	Enable_Service opafm
-}
-
-__generate_dhcpd_base() {
-	out=dhcpd.conf.base
-	cat > $out << EOF
-#
-# DHCP Server Configuration file.
-#   see /usr/share/doc/dhcp*/dhcpd.conf.sample
-#   see 'man 5 dhcpd.conf'
-#
-#
-# This file is autogenerated by the rdma-functions.sh script
-# Do not manually edit and expect your changes to survive the
-# next install cycle.
-#
-
-ignore client-updates;
-
-EOF
-	for subnet in ${all_nets[*]}; do
-		__get_net_from_subnet $subnet
-		echo "# subnet $subnet" >> $out
-		echo "subnet ${network_prefix}.$net.0 netmask 255.255.255.0 {" >> $out
-		echo "	authoritative;" >> $out
-		echo "" >> $out
-		echo "	# option routers ${network_prefix}.$net.254;" >> $out
-		echo "	option subnet-mask 255.255.255.0;" >> $out
-		echo "	range ${network_prefix}.$net.240 ${network_prefix}.$net.251;" >> $out
-		[ -n ${domain_name+x} ] && echo "	option domain-name \"${domain_name}\";" >> $out
-		if [ -n ${domain_name_servers[0]+x} ]; then 
-			local ns_string="${domain_name_servers[*]}"
-			echo "	option domain-name-servers ${ns_string//${IFS:0:1}/,};" >> $out
-		fi
-		echo "	# option time-offset	-18000; #EST" >> $out
-		echo "	default-lease-time	3600; #1 hour so we see problems faster" >> $out
-		echo "	max-lease-time		7200;" >> $out
-		echo "	# filename		\"pxelinux.0\";" >> $out
-		echo "}" >> $out
-		echo "" >> $out
-	done
-}
-
-Setup_Dhcp_Server() {
-	if [ "$RDMA_HOST" != "builder-00" ]; then
-		echo "The Setup_Dhcp_Server function can only be used on the"
-		echo "host builder-00."
-		return
-	fi
-	# We need to create an iptables setup that blocks all dhcp traffic on
-	# the lab network interface
-	#
-	# FSDP lab is running firewalld on all non-test-nodes, removing this.
-# 	eth0=lom_1
-# 	eth=lom_+
-# 	cat << EOF > /etc/sysconfig/iptables
-# # Manually created firewall rules, do not run any firewall rules editing
-# # programs or these rules will be lost
-
-# # We must take special care to make sure that the dhcp server we will be
-# # running won't attempt to respond to anything on the test lab network
-# *filter
-# :INPUT ACCEPT [0:0]
-# :FORWARD ACCEPT [0:0]
-# :OUTPUT ACCEPT [0:0]
-# -A OUTPUT -p tcp -m tcp --sport bootps -o $eth0 -j REJECT
-# -A OUTPUT -p udp -m udp --sport bootps -o $eth0 -j REJECT
-# COMMIT
-# EOF
-# 	Enable_Service iptables
-# 	Disable_Service ip6tables
-# 	Disable_Service firewalld
-
-	# Get our dhcpd.conf file and turn on dhcpd
-	$INSTALL dhcp
-	pushd /etc/dhcp >/dev/null
-	__generate_dhcpd_base
-	get_file gen_dhcpd_conf
-	chmod +x gen_dhcpd_conf
-	if [ ! -d hosts.d ]; then
-		mkdir hosts.d
-	fi
-	./gen_dhcpd_conf
-	popd >/dev/null
-	Enable_Service dhcpd
 }
 
 Create_Client_Ids() {
@@ -1619,10 +1273,7 @@ BEGIN {
 }
 
 Setup_Dhcp_Client() {
-	[ "$RDMA_HOST" = "rdma-master" -o "$RDMA_HOST" = "rdma-storage-01" ] && return
 	rm -f /root/$RDMA_HOST.dhcp.?
-	ssh rdma-master "rm -f /etc/dhcp/hosts.d/$RDMA_HOST.dhcp.*"
-	ssh rdma-storage-01 "rm -f /etc/dhcp/hosts.d/$RDMA_HOST.dhcp.*"
 	[ -z "${IPS[*]}" ] && return
 	macs=0
 	eths=0
@@ -1661,10 +1312,7 @@ Setup_Dhcp_Client() {
 		echo -ne "}\n\n" >> $RDMA_HOST.dhcp.$k
 		let k++
 	done
-	scp $RDMA_HOST.dhcp.? rdma-master:/etc/dhcp/hosts.d
-	scp $RDMA_HOST.dhcp.? rdma-storage-01:/etc/dhcp/hosts.d
-	ssh rdma-master /etc/dhcp/gen_dhcpd_conf
-	ssh rdma-storage-01 /etc/dhcp/gen_dhcpd_conf
+	tftp -m ascii builder-00 -c put /root/$RDMA_HOST.dhcp.? hosts.d
 }
 
 Unlimit_Resources() {
@@ -1690,31 +1338,16 @@ EOF
 }
 
 Usability_Enhancements() {
-	$INSTALL tree vim-enhanced vim-X11 screen bind-utils
 	get_file vimsetup.tgz
 	tar xf vimsetup.tgz
 	get_file bashrc
 	mv bashrc .bashrc
-	if [ "$ARCH_FAMILY" = "x86" -a -d /boot/efi -a -x /usr/sbin/efibootmgr ]; then
-		cat << EOF >>/root/.bashrc
-alias shutdown=rhts-reboot
-EOF
-	fi
 	get_file dir_colors
 	mv dir_colors .dir_colors
 	DRP=/etc/kernel/postinst.d/51-dracut-rescue-postinst.sh
 	[ -f $DRP ] && mv $DRP{,~}
 	Set_Config_Options /root/.bash_profile "ps1 options" "export GIT_PS1_SHOWDIRTYSTATE=yes
 export PS1='[\u@\h \W\$(__git_ps1 \" (%s)\")]\$ '"
-}
-
-Setup_Test_User_Ssh() {
-	#honli, Oct 11, 2012
-	# setup passwordless ssh configuration for non-root user 'test',
-	# then we can run openmpi benchmark by non-root user
-	rm -fr /home/test/.ssh
-	cp -r /root/.ssh /home/test
-	chown -R test:test /home/test
 }
 
 Get_MACs_Of_Host() {
@@ -1727,18 +1360,7 @@ __set_hostname_via_sysconfig() {
 	sed -e 's/HOSTNAME=.*$/HOSTNAME='${RDMA_HOST}'\.ofa\.iol\.unh\.edu/' -i /etc/sysconfig/network
 }
 
-Set_Hostpart() {
-	[ -z "$RDMA_HOST" ] && return
-	if [ $RDMA_HOST != rdma-master ]; then
-		host_part=`echo $RDMA_HOST | cut -f 2- -d '-'`
-	else
-		host_part=$RDMA_HOST
-	fi
-}
-
 Enable_Fips_Mode() {
-	[ "$OS" = rhel -a "$RELEASE" -lt 6 ] && return
-	[ "$OS" = fedora -a "$RELEASE" -lt 18 ] && return
 	if [ -f /etc/sysconfig/prelink ]; then
 		sed -e 's/PRELINKING=.*/PRELINKING=no/g' -i /etc/sysconfig/prelink
 		prelink -au
