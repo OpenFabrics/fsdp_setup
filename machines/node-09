@@ -2,7 +2,7 @@
 #
 
 # Mandatory
-RDMA_HOST=<short hosname>
+RDMA_HOST=node-09
 
 # Optional, highly discouraged, please use the beaker settings to
 # control this instead if at all possible, but if not...
@@ -18,7 +18,7 @@ RDMA_HOST=<short hosname>
 # from the list of possible fabrics: ib0 ib1 opa0 opa1 roce iw
 # Format is required to be a bash variable array, so something like
 # HOST_FABRICS=(ib0 ib1 roce) is valid
-HOST_FABRICS=()
+HOST_FABRICS=(ib0 roce)
 
 # Not exactly mandatory, but necessary to make it easy to rename interfaces
 # to expected names.  This clears out all of the enps6f1 type names that
@@ -38,20 +38,20 @@ Clear_Default_Interfaces
 #
 # Typical motherboard ethernet port connected to lab network
 
-Create_Interface lom_1 Ethernet yes hwaddr <MAC address> dhcp defroute
+Create_Interface lom_1 Ethernet yes hwaddr d4:f5:ef:0e:81:dc dhcp defroute
 
 # If you want to have a bridge interface so you can have virtual machines
 # bridged directly to the test lab Ethernet network, then first create
 # the bridge, then slave your motherboard Ethernet to it, like so:
 
-Create_Interface lab-bridge0 Bridge yes dhcp defroute mac <MAC address of lom_1> stp no priority 32768
-Create_Interface lom_1 Ethernet yes hwaddr <MAC address> bridge lab-bridge0
+#Create_Interface lab-bridge0 Bridge yes dhcp defroute mac <MAC address of lom_1> stp no priority 32768
+#Create_Interface lom_1 Ethernet yes hwaddr <MAC address> bridge lab-bridge0
 
 # Typical extra motherboard ethernet ports that are not in use
 
-Create_Interface lom_2 Ethernet no hwaddr <MAC address>
-Create_Interface lom_3 Ethernet no hwaddr <MAC address>
-Create_Interface lom_4 Ethernet no hwaddr <MAC address>
+Create_Interface lom_2 Ethernet no hwaddr d4:f5:ef:0e:81:dd
+Create_Interface lom_3 Ethernet no hwaddr d4:f5:ef:0e:81:de
+Create_Interface lom_4 Ethernet no hwaddr d4:f5:ef:0e:81:df
 
 # Please note that in order for the en command to show you your port state,
 # the interfaces need to be named lab-bridge0 and lom_1.  See the definition
@@ -101,13 +101,10 @@ Create_Interface lom_4 Ethernet no hwaddr <MAC address>
 #
 # Here is a common set of RDMA interfaces as examples
 
-Create_Rdma_Interfaces mlx5 ib0 80:00:0d:d9:fe:80:00:00:00:00:00:00:b8:59:9f:03:00:e4:f7:e0 dhcp
-Create_Rdma_Interfaces mlx5 ib1 80:00:0d:d9:fe:80:00:00:00:00:00:00:b8:59:9f:03:00:e4:f7:e1 101
-Create_Rdma_Interfaces hfi1 opa0 80:00:00:02:fe:80:00:00:00:00:00:00:00:11:75:01:01:67:49:b1 dhcp
-Create_Rdma_Interfaces mlx5 roce b8:59:9f:bb:56:1f dhcp
-
-# Here we have an extra port on an RDMA card that we just want to turn off
-Create_Interface mlx5_off Ethernet no hwaddr b8:59:9f:bb:56:1e
+Create_Rdma_Interfaces mlx5 ib0 00:00:03:06:fe:80:00:00:00:00:00:00:b8:ce:f6:03:00:09:66:da dhcp
+Create_Interface mlx5_off ipoib no hwaddr 00:00:03:06:fe:80:00:00:00:00:00:00:b8:ce:f6:03:00:09:66:db
+Create_Rdma_Interfaces qedr0 roce 34:80:0d:b4:9c:96 dhcp
+Create_Interface qedr1_off Ethernet no hwaddr 34:80:0d:b4:9c:97
 
 # This is optional.  It simply adds a multicast route to a given interface.
 # You can override this with most multicast tools by telling them which
@@ -126,9 +123,9 @@ Create_Multicast_Route mlx5_ib0
 # Mandatory, and requires that RDMA_HOST conform to our allowed hostnames
 Create_Fixed_Addresses ${HOST_FABRICS[*]}
 # Mandatory if using any RDMA over Ethernet devices
-HARDWARE=(<MAC address 1> <MAC address 2>)
+HARDWARE=(34:80:0d:b4:9c:96)
 # Mandatory if using any IB or OPA devices
-GIDS=(<8 byte GID 1> <8 byte GID 2>)
+GIDS=(b8:ce:f6:03:00:09:66:da)
 #
 ##
 
@@ -161,6 +158,16 @@ Setup_Nfs_Client_Mounts
 ##  Server Specific Settings
 # Various optional server setup routines.  Many of these are specific to
 # a given machine or machines and will refuse to run on others.
+
+# Deprecated.  We are using the switch SMs now.  Left here in case we
+# switch back to running opensm
+#Setup_Opensm
+
+# Setup opafm.  Only used on rdma-master
+#Setup_Opafm
+
+# Setup for being a dhcp server, only used on rdma-master and rdma-storage-01
+#Setup_Dhcp_Server
 
 # Setup_Nfs_Server - Optional.  Only good on already defined NFSoRDMA
 #   servers.  Requires that this host be enumerated in the arrays in the
