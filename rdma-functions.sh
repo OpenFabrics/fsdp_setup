@@ -124,40 +124,6 @@ Restart_Service() {
 	[ -f /lib/systemd/system/$1.service ] && systemctl restart $1.service
 }
 
-Setup_SSH() {
-	if [ ! -d /root/.ssh ]; then
-		mkdir -p /root/.ssh
-		chmod 700 /root/.ssh
-	fi
-	pushd /root/.ssh >/dev/null
-	get_file ssh/root/rdma-root
-	chmod 600 rdma-root
-	get_file ssh/root/rdma-root.pub
-	chmod 644 rdma-root.pub
-	if [ ! -f beaker_installed_key.pub ]; then
-		[ -f authorized_keys ] && cp authorized_keys beaker_installed_key.pub || touch beaker_installed_key.pub
-		[ -f authorized_keys2 ] && cp authorized_keys2 beaker_installed_key2.pub || touch beaker_installed_key2.pub
-	fi
-	cp beaker_installed_key.pub authorized_keys
-	echo -n "from=\"rdma-*,ib?-*,opa*,roce*,iw*,${network_prefix}.0.0/16,${lab_networks}\" " >> authorized_keys
-	cat rdma-root.pub >> authorized_keys
-	if [ "$OS" = "rhel" -a "$RELEASE" -lt 7 ]; then
-		cp beaker_installed_key2.pub authorized_keys2
-		echo -n "from=\"rdma-*,ib?-*,opa*,roce*,iw*,${network_prefix}.0.0/16,${lab_networks}\" " >> authorized_keys
-		cat rdma-root.pub >> authorized_keys2
-	fi
-	chmod 600 authorized_keys*
-	if [ ! -f config.base ]; then
-		[ -f config ] && cp config config.base || touch config.base
-	fi
-	get_file ssh/root/config.rdma
-	cp config.base config
-	cat config.rdma >> config
-	chmod 644 config
-	popd >/dev/null
-	Restart_Service sshd
-}
-
 Clear_Default_Interfaces() {
 	pushd /etc/sysconfig/network-scripts >/dev/null
 	for file in ifcfg-*; do
