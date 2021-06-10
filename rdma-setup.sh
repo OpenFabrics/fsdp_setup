@@ -1,27 +1,5 @@
 #!/bin/bash
-
-LOOKASIDE="http://beaker.ofa.iol.unh.edu/fsdp_setup"
-COPY_INSTEAD=false
-
-get_file() {
-	rm -f `basename "$1"`
-	if [ "$COPY_INSTEAD" = "true" ]; then
-		cp "${LOOKASIDE}/$1" ./
-	else
-		wget -q "${LOOKASIDE}/$1"
-	fi
-}
-
-get_dir() {
-	EXT=""
-	if [ "$COPY_INSTEAD" = "true" ]; then
-		[ -n "$2" ] && EXT="*$2"
-		cp -af "${LOOKASIDE}/${1}"${EXT} ./
-	else
-		[ -n $2 ] && EXT="-A$2"
-		wget -qr -l1 -np -nd -nH $EXT "${LOOKASIDE}/$1"
-	fi
-}
+TOPDIR=/root/fsdp_setup
 
 # WARNING: You must test for fedora-release first here as some releases of
 # fedora have a symlink from redhat-release to fedora-release that will
@@ -53,11 +31,9 @@ esac
 # If the OS uses dnf, set the package $INSTALL command to use dnf;
 # otherwise continue to use yum
 if [ -x /usr/bin/dnf ]; then
-	dnf -y -q makecache
 	SPLIT_INSTALLS=yes
 	INSTALL="dnf -y -q --allowerasing --setopt=strict=0 install"
 else
-	yum -y -q makecache
 	SPLIT_INSTALLS=no
 	INSTALL="yum -y -q --skip-broken install"
 fi
@@ -73,13 +49,6 @@ while [ -n "$1" ]; do
 		INSTALL="echo yum -y -q --skip-broken install"
 		shift 1
 		;;
-	--src)
-		# Don't get files from a server, get them from a local
-		# source instead
-		COPY_INSTEAD=true
-		LOOKASIDE="$2"
-		shift 2
-		;;
 	*)
 		# Don't get into an infinite loop because of bad options
 		shift 1
@@ -87,18 +56,14 @@ while [ -n "$1" ]; do
 	esac
 done
 
-[ -x /usr/bin/wget -a "$COPY_INSTEAD" != "true" ] || $INSTALL wget
-
 echo -n "Installing for "
 [ $OS = "rhel" ] && echo "${OS}${RELEASE}" || echo "${OS} ${RELEASE}"
 
-cd /root
-get_file rdma-functions.sh
-. ./rdma-functions.sh
+pushd "${TOPDIR}"
+source rdma-functions.sh
 
 # Common things to be done on all hosts
 Update_Etc_Hosts
-Install_Packages
 Unlimit_Resources
 Usability_Enhancements
 Setup_FSDP_Mounts
@@ -110,57 +75,20 @@ host_config_done=""
 
 RDMA_HOST=`hostname -s`
 if [ -n "$RDMA_HOST" -a "$RDMA_HOST" != "localhost" ]; then
-	get_file machines/"$RDMA_HOST"
-	if [ -f "$RDMA_HOST" ]; then
-		. ./"$RDMA_HOST"
+	if [ -f "machines/$RDMA_HOST" ]; then
+		source machines/"$RDMA_HOST"
 		host_config_done="yes"
 	fi
 fi
-if [ -n "$host_config_done" ]; then
-	RDMA_HOST=`echo $HOSTNAME | cut -f 1 -d '.'`
-	if [ -z "$RDMA_HOST" -a "$RDMA_HOST" != "localhost" ]; then
-		get_file machines/"$RDMA_HOST"
-		if [ -f "$RDMA_HOST" ]; then
-			. ./"$RDMA_HOST"
-			host_config_done="yes"
-		fi
-	fi
-fi
-if [ -z "$host_config_done" ]; then
-	for mac in ${MACS[*]}; do
-		echo "Trying to retrieve $mac..."
-		get_file machines/"$mac"
-		if [ -f "$mac" ]; then
-			. ./"$mac"
-			host_config_done="yes"
-			break
-		fi
-	done
-fi
 if [ -z "$host_config_done" ]; then
 	echo "Error!  Unable to find a host configuration for this machine!"
-	echo
-	echo "Tried:"
-	echo "	hostname -s:	`hostname -s`"
-	echo "	HOSTNAME:	$HOSTNAME"
-	echo "	MACs:		${MACS[*]}"
-	echo
 	echo "Setup is incomplete."
 else
 	Set_Config_Options /root/.bash_profile "setup options" "export RDMA_HOST=$RDMA_HOST
-export host_part=$host_part
 export HOST_FABRICS=(${HOST_FABRICS[*]})
 export OS=$OS
 export RELEASE=$RELEASE
-cp -f rdma-functions.sh rdma-functions.sh~
-get_file rdma-functions.sh
-[ ! -f rdma-functions.sh ] && cp rdma-functions.sh~ rdma-functions.sh
-. ~/rdma-functions.sh"
-
-	# These commands need ${HOST} to be set, so must come after we
-	# source our interface definition file
-	# ssh configuration for non-root user 'test'. honli
-	Setup_Test_User_Ssh
+source ~/fsdp_setup/rdma-functions.sh"
 
 	# During the host specific config, we should have added our various
 	# mac addresses to the list DHCP_MACS and DHCP_CLIENT_IDS, but
@@ -175,7 +103,7 @@ Fix_Boot_Loader
 # Do this even laster than the above step as it will fiddle with grub
 #Enable_Fips_Mode
 
-restorecon -R /root /etc /boot /lib /home/test
+restorecon -R /root /etc /boot /lib
 
 # Always rebuild the initrd in case we changed module options
 # or enabled FIPS mode

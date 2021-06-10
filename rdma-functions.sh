@@ -124,40 +124,6 @@ Restart_Service() {
 	[ -f /lib/systemd/system/$1.service ] && systemctl restart $1.service
 }
 
-Setup_SSH() {
-	if [ ! -d /root/.ssh ]; then
-		mkdir -p /root/.ssh
-		chmod 700 /root/.ssh
-	fi
-	pushd /root/.ssh >/dev/null
-	get_file ssh/root/rdma-root
-	chmod 600 rdma-root
-	get_file ssh/root/rdma-root.pub
-	chmod 644 rdma-root.pub
-	if [ ! -f beaker_installed_key.pub ]; then
-		[ -f authorized_keys ] && cp authorized_keys beaker_installed_key.pub || touch beaker_installed_key.pub
-		[ -f authorized_keys2 ] && cp authorized_keys2 beaker_installed_key2.pub || touch beaker_installed_key2.pub
-	fi
-	cp beaker_installed_key.pub authorized_keys
-	echo -n "from=\"rdma-*,ib?-*,opa*,roce*,iw*,${network_prefix}.0.0/16,${lab_networks}\" " >> authorized_keys
-	cat rdma-root.pub >> authorized_keys
-	if [ "$OS" = "rhel" -a "$RELEASE" -lt 7 ]; then
-		cp beaker_installed_key2.pub authorized_keys2
-		echo -n "from=\"rdma-*,ib?-*,opa*,roce*,iw*,${network_prefix}.0.0/16,${lab_networks}\" " >> authorized_keys
-		cat rdma-root.pub >> authorized_keys2
-	fi
-	chmod 600 authorized_keys*
-	if [ ! -f config.base ]; then
-		[ -f config ] && cp config config.base || touch config.base
-	fi
-	get_file ssh/root/config.rdma
-	cp config.base config
-	cat config.rdma >> config
-	chmod 644 config
-	popd >/dev/null
-	Restart_Service sshd
-}
-
 Clear_Default_Interfaces() {
 	pushd /etc/sysconfig/network-scripts >/dev/null
 	for file in ifcfg-*; do
@@ -724,43 +690,18 @@ Update_Etc_Hosts() {
 	cat > $FILE <<EOF
 127.0.0.1	localhost localhost.localdomain localhost4 localhost4.localdomain4
 ::1	localhost localhost.localdomain localhost6 localhost6.localdomain6
-10.16.45.105		rdma-master
 EOF
 
 	local __awk_src='
 BEGIN {
-	offset["qe"]=0
-	offset["cki"]=80
-	offset["dev"]=100
-	offset["perf"]=180
-	offset["virt"]=200
-	offset["storage"]=220
-	offset["cert"]=230
-	offset["dhcp"]=240
-	offset["ocp-director"]=253
-	offset["rdma-master"]=254
+	offset["node"]=0
+	offset["builder"]=252
 	net["ib0", 0]="ib0"
 	net["ib0", 2]="ib0.2"
 	net["ib0", 4]="ib0.4"
 	net["ib0", 6]="ib0.6"
-	net["ib0", 8]="ib0.8"
-	net["ib0", 10]="ib0.10"
-	net["ib0", 12]="ib0.12"
-	net["ib0", 14]="ib0.14"
-	net["ib0", 16]="ib0.16"
-	net["ib1", 1]="ib1"
-	net["ib1", 3]="ib1.3"
-	net["ib1", 5]="ib1.5"
-	net["ib1", 7]="ib1.7"
-	net["ib1", 9]="ib1.9"
-	net["ib1", 11]="ib1.11"
-	net["ib1", 13]="ib1.13"
 	net["opa0", 20]="opa0"
 	net["opa0", 22]="opa0.22"
-	net["opa0", 24]="opa0.24"
-	net["opa1", 21]="opa1"
-	net["opa1", 23]="opa1.23"
-	net["opa1", 25]="opa1.25"
 	net["roce", 40]="roce"
 	net["roce", 43]="roce.43"
 	net["roce", 45]="roce.45"
@@ -769,36 +710,22 @@ BEGIN {
 	net["iw", 52]="iw.52"
 }
 {
-	num_host_fields = split($1, host_fields, "-")
-	switch($1) {
-		case "rdma-master":
-			host_part = $1
-			host_ip = offset[host_part]
-			break
-		case "rdma-ocp-director":
-			host_part = "ocp-director"
-			host_ip = offset[host_part]
-			break
-		default:
-			host_part = substr($1, index($1, "-") + 1)
-			group = host_fields[2]
-			host_ip = offset[group] + host_fields[num_host_fields]
-			break
-	}
+	split($1, host_fields, "-")
+	group = host_fields[1]
+	host_ip = offset[group] + host_fields[2]
 	for (i=2; i<=NF; i++) {
 		for (j=0; j<=254; j++) {
 			if (($i, j) in net) {
 				net_ip = j
 				net_name = net[$i, j]
-				printf("'"${network_prefix}"'.%d.%d\t\t%s-%s\n", net_ip,
-					host_ip, net_name, host_part)
+				printf("'"${network_prefix}"'.%d.%d\t\t%s-%s\n",
+					net_ip, host_ip, net_name, $1)
 			}
 		}
 	}
 }
 '
-	get_file machines/host-fabrics
-	awk "$__awk_src" host-fabrics >> $FILE
+	awk "$__awk_src" machines/host-fabrics >> $FILE
 
 	return 0
 }
