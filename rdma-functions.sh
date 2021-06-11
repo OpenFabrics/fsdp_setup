@@ -1225,7 +1225,7 @@ Install_Packages() {
 	[ -d /etc/bash_completion.d -a -f /usr/share/git-core/contrib/completion/git-prompt.sh ] && ln -sf ../../usr/share/git-core/contrib/completion/git-prompt.sh /etc/bash_completion.d/
 
 	Disable_Service cpuspeed
-	sed -e 's/SRP_LOAD=no/SRP_LOAD=yes/;s/ISER_LOAD=no/ISER_LOAD=yes/;s/RDS_LOAD=yes/RDS_LOAD=no/;s/LOAD_RDS.*/RDS_LOAD=no/;s/TECH_PREVIEW_LOAD.*/TECH_PREVIEW_LOAD=yes/' -i $RDMA_CONFIG
+	sed -e 's/SRP_LOAD=no/SRP_LOAD=yes/;s/ISER_LOAD=no/ISER_LOAD=yes/;s/RDS_LOAD=yes/RDS_LOAD=no/;s/LOAD_RDS.*/RDS_LOAD=no/;s/TECH_PREVIEW_LOAD.*/TECH_PREVIEW_LOAD=yes/' -i /etc/rdma/rdma.conf
 
 	# Disable the various firewalls as they aren't set up by default for
 	# our use case
