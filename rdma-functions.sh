@@ -1,7 +1,7 @@
 #!/bin/bash
 
-source machines/wwns
-source machines/nfs-mounts
+source ~/fsdp_setup/machines/wwns
+source ~/fsdp_setup/machines/nfs-mounts
 
 ###########################################################################
 #
