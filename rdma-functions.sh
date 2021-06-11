@@ -1276,7 +1276,7 @@ BEGIN {
 }
 
 Setup_Dhcp_Client() {
-	rm -f /root/$RDMA_HOST.dhcp.?
+	rm -f ~/$RDMA_HOST.dhcp.?
 	[ -z "${IPS[*]}" ] && return
 	macs=0
 	eths=0
@@ -1296,26 +1296,26 @@ Setup_Dhcp_Client() {
 	done
 	k=0
 	while [ $k -lt $macs -o $k -lt $ids ]; do
-		echo -ne "host $RDMA_HOST.$k {\n" > $RDMA_HOST.dhcp.$k
-		echo -ne "\tfixed-address " >> $RDMA_HOST.dhcp.$k
+		echo -ne "host $RDMA_HOST.$k {\n" > ~/$RDMA_HOST.dhcp.$k
+		echo -ne "\tfixed-address " >> ~/$RDMA_HOST.dhcp.$k
 		j=0
 		for i in ${IPS[*]}; do
-			[ $j -gt 0 ] && echo -ne "," >> $RDMA_HOST.dhcp.$k
-			echo -ne "$i" >> $RDMA_HOST.dhcp.$k
+			[ $j -gt 0 ] && echo -ne "," >> ~/$RDMA_HOST.dhcp.$k
+			echo -ne "$i" >> ~/$RDMA_HOST.dhcp.$k
 			let j++
 		done
-		echo -ne ";\n" >> $RDMA_HOST.dhcp.$k
+		echo -ne ";\n" >> ~/$RDMA_HOST.dhcp.$k
 		if [ $k -lt $eths ]; then
-			echo -ne "\thardware ethernet ${HARDWARE[$k]};\n" >> $RDMA_HOST.dhcp.$k
+			echo -ne "\thardware ethernet ${HARDWARE[$k]};\n" >> ~/$RDMA_HOST.dhcp.$k
 		elif [ $(($k - $eths)) -lt $gids ]; then
-			echo -ne "\thardware infiniband ${GIDS[$(($k - $eths))]};\n" >> $RDMA_HOST.dhcp.$k
+			echo -ne "\thardware infiniband ${GIDS[$(($k - $eths))]};\n" >> ~/$RDMA_HOST.dhcp.$k
 		fi
 		[ -n "${ID[$k]}" ] && \
-			echo -ne "\toption dhcp-client-identifier=${ID[$k]};\n" >> $RDMA_HOST.dhcp.$k
-		echo -ne "}\n\n" >> $RDMA_HOST.dhcp.$k
+			echo -ne "\toption dhcp-client-identifier=${ID[$k]};\n" >> ~/$RDMA_HOST.dhcp.$k
+		echo -ne "}\n\n" >> ~/$RDMA_HOST.dhcp.$k
 		let k++
 	done
-	tftp -m ascii builder-00 -c put /root/$RDMA_HOST.dhcp.? hosts.d
+	tftp -m ascii builder-00 -c put ~/$RDMA_HOST.dhcp.? hosts.d/
 }
 
 Unlimit_Resources() {
