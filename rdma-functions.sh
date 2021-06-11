@@ -1338,12 +1338,9 @@ EOF
 }
 
 Usability_Enhancements() {
-	get_file vimsetup.tgz
-	tar xf vimsetup.tgz
-	get_file bashrc
-	mv bashrc .bashrc
-	get_file dir_colors
-	mv dir_colors .dir_colors
+	tar -xf vimsetup.tgz -C /root
+	cp bashrc ../.bashrc
+	cp dir_colors ../.dir_colors
 	DRP=/etc/kernel/postinst.d/51-dracut-rescue-postinst.sh
 	[ -f $DRP ] && mv $DRP{,~}
 	Set_Config_Options /root/.bash_profile "ps1 options" "export GIT_PS1_SHOWDIRTYSTATE=yes
