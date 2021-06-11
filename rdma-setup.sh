@@ -65,6 +65,7 @@ source rdma-functions.sh
 # Common things to be done on all hosts
 Update_Etc_Hosts
 Unlimit_Resources
+Install_Packages
 Usability_Enhancements
 Setup_FSDP_Mounts
 
