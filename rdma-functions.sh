@@ -591,10 +591,12 @@ Create_Rdma_Interfaces() {
 	start_net=$net
 	case "$2" in
 	ib0)
-		[ "$1" != "mlx5" ] && CM="connected_mode yes"
+		# In the FSDP we only have 2k nets and only mlx5 devices
+		# so there won't be any connected mode machines
+		#[ "$1" != "mlx5" ] && CM="connected_mode yes"
 		nets=(${ib0_2k_nets[*]} ${ib0_4k_nets[*]})
-		__get_net_from_subnet ${ib0_4k_nets[0]}
-		_4k_start=$net
+		#__get_net_from_subnet ${ib0_4k_nets[0]}
+		#_4k_start=$net
 		;;
 	ib1)
 		nets=(${ib1_2k_nets[*]} ${ib1_4k_nets[*]})
@@ -655,7 +657,8 @@ Create_Rdma_Interfaces() {
 		fi
 		if [ "$TYPE" = "InfiniBand" ]; then
 			if [ -z "$CM" ]; then
-				[ $net -lt $_4k_start ] && MTU="mtu 2044" || MTU="mtu 4092"
+				#[ $net -lt $_4k_start ] && MTU="mtu 2044" || MTU="mtu 4092"
+				MTU="mtu 2044"
 			else
 				MTU="mtu 65520"
 			fi
