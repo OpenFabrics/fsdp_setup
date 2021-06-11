@@ -132,9 +132,6 @@ GIDS=(<8 byte GID 1> <8 byte GID 2>)
 #
 ##
 
-# Mandatory, but also very deprecated.  I expect this to go away soon.
-Install_Override_Packages
-
 # Optional.  Used to put free form configuration settings into files.
 # Requires that the file in question honor the shell script standard
 # notation that all lines starting with a # character are comments.
