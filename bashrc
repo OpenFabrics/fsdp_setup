@@ -26,26 +26,30 @@ get_dir() {
 	wget -qr -l1 -np -nd -nH $EXT "${RDMA_LOOKASIDE}/$1"
 }
 
-_show_ib_dev_state() {
-	ip -o link show $1 | awk -v dev=$1 '
+__show_link_state='
 BEGIN {
 	printf "%s:", dev;
 	if (length(dev) < 23) printf "\t";
 	if (length(dev) < 15) printf "\t";
 	if (length(dev) < 7) printf "\t";
 }
-/NO-CARRIER/ && /[\<\,]UP[\>\,]/ { printf "No Link, Interface UP\t" };
-/LOWER_UP/ && /[\<\,]UP[\>\,]/ { printf "Link UP, Interface UP\t" };
-/NO-CARRIER/ && !/[\<\,]UP[\>\,]/ { printf "No Link, Interface Down\t" };
-/LOWER_UP/ && !/[\<\,]UP[\>\,]/ { printf "Link UP, Interface Down\t" };
+/NO-CARRIER/ && /[\<,]UP[\>,]/ { printf "No Link, Interface UP\t" };
+/LOWER_UP/ && /[\<,]UP[\>,]/ { printf "Link UP, Interface UP\t" };
+/NO-CARRIER/ && !/[\<,]UP[\>,]/ { printf "No Link, Interface Down\t" };
+/LOWER_UP/ && !/[\<,]UP[\>,]/ { printf "Link UP, Interface Down\t" };
 !/LOWER_UP|NO-CARRIER/ { printf "%s\tInterface off\t", $2 };
 '
-                ip addr show $1 | awk '
+
+__show_ip_addr='
 BEGIN { once = 0 }
 / inet / { if (once == 0) { once = 1; printf "%s", $2 }
 	   else printf ", %s", $2 }
 END { printf "\n" }
 '
+
+_show_ib_dev_state() {
+	ip -o link show $1 | awk -v dev=$1 "$__show_link_state"
+                ip addr show $1 | awk "$__show_ip_addr"
 }
 
 _ib_dev() {
@@ -67,24 +71,8 @@ opa() {
 }
 
 _show_en_dev_state() {
-	ip -o link show $1 | head -n 1 | awk -v dev=$1 '
-BEGIN { printf "%s:", dev;
-	if (length(dev) < 23) printf "\t";
-	if (length(dev) < 15) printf "\t";
-	if (length(dev) < 7) printf "\t";
-}
-/NO-CARRIER/ && /[\<\,]UP[\>\,]/ { printf "No Link, Interface UP\t" };
-/LOWER_UP/ && /[\<\,]UP[\>\,]/ { printf "Link UP, Interface UP\t" };
-/NO-CARRIER/ && !/[\<\,]UP[\>\,]/ { printf "No Link, Interface Down\t" };
-/LOWER_UP/ && !/[\<\,]UP[\>\,]/ { printf "Link UP, Interface Down\t" };
-!/LOWER_UP|NO-CARRIER/ { printf "Interface off\t" };
-'
-	ip addr show $1 | awk '
-BEGIN { once = 0 }
-/ inet / { if (once == 0) { once = 1; printf "%s", $2 }
-	   else printf ", %s", $2 }
-END { printf "\n" }
-'
+	ip -o link show $1 | head -n 1 | awk -v dev=$1 "$__show_link_state"
+	ip addr show $1 | awk "$__show_ip_addr"
 	if [ `ip -o link show $1 | tail -n +2 | wc -l` -gt 0 ]; then
 		ip -o link show $1 | tail -n +2
 	fi
