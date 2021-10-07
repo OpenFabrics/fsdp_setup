@@ -1,0 +1,9 @@
+[Unit]
+Description=Api used for managing DHCP services
+After=network-up.target
+
+[Service]
+ExecStart=python3 Api/app.py 8080
+
+[Install]
+WantedBy=multi_user.target
