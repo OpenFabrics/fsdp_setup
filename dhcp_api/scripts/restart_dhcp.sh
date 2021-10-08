@@ -1,4 +1,4 @@
 #! bin/sh
 
-#systemctl restart dhcp
-echo "dhcp restarted successfully"
+systemctl restart dhcp
+

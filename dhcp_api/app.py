@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, json, jsonify, request
 import subprocess
 import os
 import sys
@@ -17,8 +17,8 @@ if len(sys.argv) > 1:
 else:
     PORT = 8080
 
-serverName = 'builder-00.ofa.iol.unh.edu:' + str(PORT)
-app.config['SERVER_NAME'] = serverName 
+#serverName = 'builder-00.ofa.iol.unh.edu:' + str(PORT)
+#app.config['SERVER_NAME'] = serverName 
 
 #--------------------------------
 #    get a list of file names
@@ -71,6 +71,23 @@ def checkDhcp():
         return jsonify({"status": 500, "message": "internal server error"}), 500
 
 #------------------------------
+#     Rebuild DHCP Config
+#------------------------------
+@app.route('/rebuildDhcp', methods=["POST"])
+def rebuildDhcp():
+    #creates a list of file names from the given path
+    fileNameList = os.listdir('/var/lib/tftpboot/hosts.d/')
+    fileNameString = ""
+    for file in fileNameList:
+        fileNameString = fileNameString + "/var/lib/tftpboot/hosts.d/" + file + " "
+    query = subprocess.run(["sudo", "bash", "scripts/rebuild_dhcp.sh", fileNameString], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if query.returncode == 0:
+        return jsonify({"status": 200, "message": "Rebuilt DHCP"}), 200
+    else:
+        print(query.stderr)
+        return jsonify({"status": 500, "message": "Internal server error"}), 500
+
+#------------------------------
 #      delete a node file
 #------------------------------
 @app.route('/hosts.d/<fileName>', methods=["DELETE"])
@@ -78,14 +95,11 @@ def deleteAFile(fileName):
     #creates a list of file names from the given path and then uses the .count method to see if the given
     #parameter matches one of the file names
     fileNameList = os.listdir('/var/lib/tftpboot/hosts.d/')
-    #fileNameList = os.listdir('../')
     fileNameCheck = fileNameList.count(fileName)
     if fileNameCheck == 1:
-        #query = subprocess.run(["rm", "../"+fileName], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         query = subprocess.run(["bash", "scripts/rm_dhcp_file.sh", ""+fileName], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         #if there were no errors
         if query.returncode == 0:
-            print(query.stdout)
             return jsonify({"status": 200, "message": "File was deleted"}), 200
         #if the bash command encountered an error
         else:
@@ -93,7 +107,6 @@ def deleteAFile(fileName):
             return jsonify({"status": 500, "message": "Internal server error"}), 500
     else:
         return jsonify({"status":404, "message": "File was not found"}), 404
-        print("File was not found")
 
 if __name__ == "__main__":
     app.run(debug=True, port=PORT)
