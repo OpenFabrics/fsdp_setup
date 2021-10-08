@@ -1,4 +1,4 @@
 #! bin/sh
 
-systemctl restart dhcp
+systemctl restart dhcpd
 

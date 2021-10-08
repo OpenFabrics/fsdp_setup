@@ -31,14 +31,25 @@ def getFileNames():
     return jsonify({"fileNames": fileNameList}), 200
 
 #--------------------------------
-#         restart dhcp
+#        restart dhcp4
 #--------------------------------
-@app.route('/restartDhcpService', methods=["POST"])
+@app.route('/restartDhcp4Service', methods=["POST"])
 def restartDhcp():
     query = subprocess.run(['bash', 'scripts/restart_dhcp.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     #if the command returns without error
     if query.returncode == 0:
-        return jsonify({"status": 200, "message": "dhcp was restarted successfully"}), 200
+        return jsonify({"status": 200, "message": "dhcp4 was restarted successfully"}), 200
+    else:
+        return jsonify({"status": 500, "message": "internal server error"}), 500
+
+#--------------------------------
+#        restart dhcp6
+#--------------------------------
+@app.route('/restartDhcp6Service', methods=["POST"])
+def restartdhcp6():
+    query = subprocess.run(['bash', 'scripts/restart_dhcp6.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if query.returncode == 0:
+        return jsonify({"status": 200, "message": "dhcp6 was restarted successfully"}), 200
     else:
         return jsonify({"status": 500, "message": "internal server error"}), 500
 
