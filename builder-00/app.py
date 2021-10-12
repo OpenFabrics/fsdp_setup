@@ -25,7 +25,7 @@ else:
 #serverName = 'builder-00.ofa.iol.unh.edu:' + str(PORT)
 #app.config['SERVER_NAME'] = serverName 
 
-dhcpd_scripts_variable = "/opt/dhcpd_api/dhcpd_scripts"
+dhcpd_scripts_variable = "dhcpd_scripts"
 
 #--------------------------------
 #    get a list of file names
@@ -42,12 +42,13 @@ def getFileNames():
 #--------------------------------
 @app.route('/restartDhcp4Service', methods=["POST"])
 def restartDhcp():
-    query = subprocess.run(['bash', 'dhcpd_scripts/restart_dhcp.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query = subprocess.run(['bash', os.getcwd() + dhcpd_scripts_variable +  '/restart_dhcp.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     #if the command returns without error
     if query.returncode == 0:
         return jsonify({"status": 200, "message": "Dhcp4 restarted successfully"}), 200
     else:
-        print(query.returncode)
+        print(os.getcwd() + dhcpd_scripts_variable + "/restart_dhcp.sh")
+        #print(query.returncode)
         return jsonify({"status": 500, "message": "There was an error restarting Dhcp4"}), 500
 
 #--------------------------------
@@ -55,7 +56,7 @@ def restartDhcp():
 #--------------------------------
 @app.route('/restartDhcp6Service', methods=["POST"])
 def restartdhcp6():
-    query = subprocess.run(['bash', 'scripts/restart_dhcp6.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query = subprocess.run(['bash', os.getcwd() + dhcpd_scripts_variable + '/restart_dhcp6.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if query.returncode == 0:
         return jsonify({"status": 200, "message": "dhcp6 was restarted successfully"}), 200
     else:
@@ -67,27 +68,41 @@ def restartdhcp6():
 @app.route('/checkDhcpStatus', methods=["POST"])
 def checkDhcp():
     #bash commands to check status of both dhcp4 and dhcp6
-    query = subprocess.run(['bash', 'scripts/status_dhcp4.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    query2 = subprocess.run(['bash', 'scripts/status_dhcp6.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query = subprocess.run(['bash', os.getcwd() + dhcpd_scripts_variable + '/status_dhcp4.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query2 = subprocess.run(['bash', os.getcwd() + dhcpd_scripts_variable + '/status_dhcp6.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
     #if the command returns without error
     #includes both codes 0 and 3 because with a "systemctl status" command a code 0 means the service
     #is running and a code 3 means it is inactive
+    dhcp4_status_exists = False
+    dhcp6_status_exists = False
+
     if query.returncode == 0 or query.returncode == 3:
-        #formatting for dhcp4 bash command output
-        dhcp4String = str(query.stdout)
-        dhcp4Arr = dhcp4String.split('\\n')
-        dhcp4Output = dhcp4Arr[2].strip()
-        dhcp4Output = dhcp4Output.replace("Active", "Status", 1)
-        
-        #Formatting for dhcp6 bash command output
-        dhcp6String = str(query2.stdout)
-        dhcp6Arr = dhcp6String.split('\\n')
-        dhcp6Output = dhcp6Arr[2].strip()
-        dhcp6Output = dhcp6Output.replace("Active", "Status", 1)
-        return jsonify({"status": 200, "message": {"dhcp4Status": dhcp4Output, "dhcp6Status": dhcp6Output}}), 200
+        dhcp4_status_exists = True
+
+    if query2.returncode == 0 or query2.returncode == 3:
+        dhcp6_status_exists = True
+
+    #function to format the outputs of bash commands
+    def formatDhcp(input):
+        dhcpString = str(input)
+        dhcpArr = dhcpString.split('\\n')
+        dhcpOutput = dhcpArr[2].strip()
+        dhcpOutput = dhcpOutput.replace("Active", "Status", 1)
+        return dhcpOutput
+    
+    #if both dchp4 and dhcp6 have a status 
+    if dhcp4_status_exists and dhcp6_status_exists:
+        return jsonify({"status": 200, "message": {"dhcp4Status": formatDhcp(query.stdout), "dhcp6Status": formatDhcp(query2.stdout)}}), 200
+    #if only dhcp4 has a status
+    elif dhcp4_status_exists and dhcp6_status_exists != True:
+        return jsonify({"status": 206, "message": {"dhcp4Status": formatDhcp(query.stdout), "dhcp6Status": "Unknown"}}), 206
+    #if only dhcp6 has a status
+    elif dhcp6_status_exists and dhcp4_status_exists != True:
+        return jsonify({"status": 206, "message": {"dhcp4Status": "Unknown", "dhcp6Status": formatDhcp(query2.stdout)}}), 206
+    #if neither status can be found
     else:
-        return jsonify({"status": 500, "message": "internal server error"}), 500
+        return jsonify({"status": 500, "message": "Internal server error. Could not find status of dhcp4 or dhcp6."}), 500
 
 #------------------------------
 #     Rebuild DHCP Config
@@ -99,7 +114,7 @@ def rebuildDhcp():
     fileNameString = ""
     for file in fileNameList:
         fileNameString = fileNameString + "/var/lib/tftpboot/hosts.d/" + file + " "
-    query = subprocess.run(["sudo", "bash", "scripts/rebuild_dhcp.sh", fileNameString], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query = subprocess.run(["sudo", "bash", os.getcwd() + dhcpd_scripts_variable + "/rebuild_dhcp.sh", fileNameString], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if query.returncode == 0:
         return jsonify({"status": 200, "message": "Rebuilt DHCP"}), 200
     else:
@@ -116,7 +131,7 @@ def deleteAFile(fileName):
     fileNameList = os.listdir('/var/lib/tftpboot/hosts.d/')
     fileNameCheck = fileNameList.count(fileName)
     if fileNameCheck == 1:
-        query = subprocess.run(["bash", "scripts/rm_dhcp_file.sh", ""+fileName], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        query = subprocess.run(["bash", os.getcwd() + dhcpd_scripts_variable + "/rm_dhcp_file.sh", ""+fileName], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         #if there were no errors
         if query.returncode == 0:
             return jsonify({"status": 200, "message": "File was deleted"}), 200
