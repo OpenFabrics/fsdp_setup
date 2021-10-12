@@ -6,19 +6,26 @@ import sys
 app = Flask(__name__)
 #basically what this does is it looks at the argumens given to the python3 bash command when you use it on
 #the file, which will always be at least one because the file name is an argument, and then it checks to see
-#if there are more than one, if there are, is the second one an integer? If it is, make it the port for the api.
-#otherwise run the api on port 8080
+#if there are more than one, if there are, is the second one an integer?
 if len(sys.argv) > 1:
     try:
         int(sys.argv[1])
-        PORT = sys.argv[1]
+        #if the argument is an integer and is greater than 0
+        if int(sys.argv[1]) > 0:
+            PORT = sys.argv[1]
+        else:
+            sys.exit(2)
+    #if the argument is not an integer
     except:
-        PORT = 8080
+        sys.exit(2)
+#if the command doesn't have an additional argument
 else:
-    PORT = 8080
+    sys.exit(2)
 
 #serverName = 'builder-00.ofa.iol.unh.edu:' + str(PORT)
 #app.config['SERVER_NAME'] = serverName 
+
+dhcpd_scripts_variable = "/opt/dhcpd_api/dhcpd_scripts"
 
 #--------------------------------
 #    get a list of file names
@@ -35,12 +42,13 @@ def getFileNames():
 #--------------------------------
 @app.route('/restartDhcp4Service', methods=["POST"])
 def restartDhcp():
-    query = subprocess.run(['bash', 'scripts/restart_dhcp.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query = subprocess.run(['bash', 'dhcpd_scripts/restart_dhcp.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     #if the command returns without error
     if query.returncode == 0:
-        return jsonify({"status": 200, "message": "dhcp4 was restarted successfully"}), 200
+        return jsonify({"status": 200, "message": "Dhcp4 restarted successfully"}), 200
     else:
-        return jsonify({"status": 500, "message": "internal server error"}), 500
+        print(query.returncode)
+        return jsonify({"status": 500, "message": "There was an error restarting Dhcp4"}), 500
 
 #--------------------------------
 #        restart dhcp6
@@ -120,4 +128,4 @@ def deleteAFile(fileName):
         return jsonify({"status":404, "message": "File was not found"}), 404
 
 if __name__ == "__main__":
-    app.run(debug=True, port=PORT)
+    app.run(port=PORT)
