@@ -10,17 +10,20 @@ app = Flask(__name__)
 if len(sys.argv) > 1:
     try:
         int(sys.argv[1])
-        #if the argument is an integer and is greater than 0
-        if int(sys.argv[1]) > 0:
-            PORT = sys.argv[1]
-        else:
-            sys.exit(2)
     #if the argument is not an integer
     except:
-        sys.exit(2)
+        #found how to raise errors from https://stackoverflow.com/questions/2052390/manually-raising-throwing-an-exception-in-python
+        raise ValueError("Invalid port. Port must be in integer greater than 0.")
+
+    #if the argument is an integer and is greater than 0
+    if int(sys.argv[1]) > 0:
+        PORT = sys.argv[1]
+    else:
+        raise ValueError("Invalid port. Port must be in integer greater than 0.")
+        
 #if the command doesn't have an additional argument
 else:
-    sys.exit(2)
+    raise ReferenceError("Port required. Command should be, \"python3 app.py <PORT>\"")
 
 #serverName = 'builder-00.ofa.iol.unh.edu:' + str(PORT)
 #app.config['SERVER_NAME'] = serverName 
@@ -109,17 +112,23 @@ def checkDhcp():
 #------------------------------
 @app.route('/rebuildDhcp', methods=["POST"])
 def rebuildDhcp():
-    #creates a list of file names from the given path
-    fileNameList = os.listdir('/var/lib/tftpboot/hosts.d/')
-    fileNameString = ""
-    for file in fileNameList:
-        fileNameString = fileNameString + "/var/lib/tftpboot/hosts.d/" + file + " "
-    query = subprocess.run(["sudo", "bash", os.getcwd() + dhcpd_scripts_variable + "/rebuild_dhcp.sh", fileNameString], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    #essentially, this try statement says if we found the node files, continue, if not, throw an error
+    try:
+        #creates a list of file names from the given path
+        fileNameList = os.listdir('/var/lib/tftpboot/hosts.d/')
+    except:
+        return jsonify({"status": 502, "message": "Unable to find node configuration files"}), 502
+    #bash command resets the config file with a new template
+    query = subprocess.run(["bash", os.getcwd() + dhcpd_scripts_variable + "/reset_dhcpd_config.sh"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    #if the script ran without error
     if query.returncode == 0:
-        return jsonify({"status": 200, "message": "Rebuilt DHCP"}), 200
+        for node in fileNameList:
+            query2 = subprocess.run(["bash", os.getcwd() + dhcpd_scripts_variable + "/rebuild_dhcp.sh", ""+node], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return jsonify({"status": 200, "message": "Rebuilt dhcpd configuration successfully"}), 200
     else:
-        print(query.stderr)
-        return jsonify({"status": 500, "message": "Internal server error"}), 500
+        return jsonify({"status": 500, "message": "Error rebuilding the dhcpd configuration file"}), 500
+    
+    
 
 #------------------------------
 #      delete a node file
