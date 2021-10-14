@@ -1342,15 +1342,17 @@ __setup_dhcp_client_loop() {
 		esac
 	done
 
-	for mac in $HWADDRs[*]; do
+	for mac in ${HWADDRs[*]}; do
 		let eths++
 		let macs++
 	done
-	for gid in $GUIDs[*]; do
+	for gid in ${GUIDs[*]}; do
 		let gids++
 		let macs++
 	done
-	Create_Client_Ids $GUIDs[*]
+
+	[ -n "${GUIDs[*]}" ] && Create_Client_Ids ${GUIDs[*]}
+
 	for id in ${ID[*]}; do
 		let ids++
 	done
