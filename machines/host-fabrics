@@ -3,5 +3,5 @@ node-02 opa0 iw roce
 node-03 ib0 opa0 iw roce
 node-04 opa0 ib0 roce iw
 node-05 roce iw
-node-06 ib0 roce
+node-06 roce iw
 node-09 ib0 roce
