@@ -1302,9 +1302,9 @@ __setup_dhcp_client_loop() {
 	local ids=0
 	local k=0
 	local i
-	local -A IP_addrs
-	local -A HWADDRs
-	local -A GUIDs
+	local IP_addrs
+	local HWADDRs
+	local GUIDs
 
 	while [ -n "$1" ]; do
 		case $1 in
@@ -1362,7 +1362,7 @@ __setup_dhcp_client_loop() {
 		echo -ne "host $host_instance {\n" > $host_file
 		echo -ne "\tfixed-address " >> $host_file
 		local j=0
-		for i in ${1[*]}; do
+		for i in ${IP_addrs[*]}; do
 			[ $j -gt 0 ] && echo -ne "," >> $host_file
 			echo -ne "$i" >> $host_file
 			let j++
