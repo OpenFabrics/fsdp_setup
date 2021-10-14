@@ -1342,6 +1342,7 @@ __setup_dhcp_client_loop() {
 			esac
 			;;
 		esac
+	done
 
 	for mac in $HWADDRs[*]; do
 		let eths++
