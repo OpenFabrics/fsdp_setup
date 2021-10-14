@@ -1302,8 +1302,8 @@ __setup_dhcp_client_loop() {
 	local ids=0
 	local k=0
 	local i
-	local IP_addrs
-	local HWADDRs
+	local IPs
+	local HWs
 	local GUIDs
 
 	while [ -n "$1" ]; do
@@ -1311,12 +1311,12 @@ __setup_dhcp_client_loop() {
 		ips)
 			i=0
 			k=0
-			IP_addrs=()
+			IPs=()
 			shift 1;;
 		macs)
 			i=0
 			k=1
-			HWADDRs=()
+			HWs=()
 			shift 1;;
 		gids)
 			i=0
@@ -1329,10 +1329,10 @@ __setup_dhcp_client_loop() {
 		*)
 			case $k in
 			0)
-				IP_addrs=(${IP_addrs[*]} $1)
+				IPs=(${IPs[*]} $1)
 				shift;;
 			1)
-				HWADDRs=(${HWADDRs[*]} $1)
+				HWs=(${HWs[*]} $1)
 				shift;;
 			2)
 				GUIDs=(${GUIDs[*]} $1)
@@ -1345,7 +1345,7 @@ __setup_dhcp_client_loop() {
 		esac
 	done
 
-	for mac in ${HWADDRs[*]}; do
+	for mac in ${HWs[*]}; do
 		let eths++
 		let macs++
 	done
@@ -1366,14 +1366,14 @@ __setup_dhcp_client_loop() {
 		echo -ne "host $host_instance {\n" > $host_file
 		echo -ne "\tfixed-address " >> $host_file
 		local j=0
-		for i in ${IP_addrs[*]}; do
+		for i in ${IPs[*]}; do
 			[ $j -gt 0 ] && echo -ne "," >> $host_file
 			echo -ne "$i" >> $host_file
 			let j++
 		done
 		echo -ne ";\n" >> $host_file
 		if [ $k -lt $eths ]; then
-			echo -ne "\thardware ethernet ${HWADDRs[$k]};\n" >> $host_file
+			echo -ne "\thardware ethernet ${HWs[$k]};\n" >> $host_file
 		elif [ $(($k - $eths)) -lt $gids ]; then
 			echo -ne "\thardware infiniband ${GUIDs[$(($k - $eths))]};\n" >> $host_file
 		fi
