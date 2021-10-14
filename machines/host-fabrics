@@ -4,4 +4,4 @@ node-03 ib0 opa0 iw roce
 node-04 opa0 ib0 roce iw
 node-05 roce iw
 node-06 roce iw
-node-09 ib0 roce
+node-09 ib0 ib0.1 roce roce.1 roce.2
