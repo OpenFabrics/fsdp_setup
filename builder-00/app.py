@@ -45,13 +45,11 @@ def getFileNames():
 #--------------------------------
 @app.route('/restartDhcp4Service', methods=["POST"])
 def restartDhcp():
-    query = subprocess.run(['bash', os.getcwd() + dhcpd_scripts_variable +  '/restart_dhcp.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query = subprocess.run(['sudo', os.getcwd() + dhcpd_scripts_variable +  '/restart_dhcp.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     #if the command returns without error
     if query.returncode == 0:
         return jsonify({"status": 200, "message": "Dhcp4 restarted successfully"}), 200
     else:
-        print(os.getcwd() + dhcpd_scripts_variable + "/restart_dhcp.sh")
-        #print(query.returncode)
         return jsonify({"status": 500, "message": "There was an error restarting Dhcp4"}), 500
 
 #--------------------------------
@@ -59,7 +57,7 @@ def restartDhcp():
 #--------------------------------
 @app.route('/restartDhcp6Service', methods=["POST"])
 def restartdhcp6():
-    query = subprocess.run(['bash', os.getcwd() + dhcpd_scripts_variable + '/restart_dhcp6.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query = subprocess.run(['sudo', os.getcwd() + dhcpd_scripts_variable + '/restart_dhcp6.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if query.returncode == 0:
         return jsonify({"status": 200, "message": "dhcp6 was restarted successfully"}), 200
     else:
@@ -71,8 +69,8 @@ def restartdhcp6():
 @app.route('/checkDhcpStatus', methods=["POST"])
 def checkDhcp():
     #bash commands to check status of both dhcp4 and dhcp6
-    query = subprocess.run(['bash', os.getcwd() + dhcpd_scripts_variable + '/status_dhcp4.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    query2 = subprocess.run(['bash', os.getcwd() + dhcpd_scripts_variable + '/status_dhcp6.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query = subprocess.run(['sudo', os.getcwd() + dhcpd_scripts_variable + '/status_dhcp4.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query2 = subprocess.run(['sudo', os.getcwd() + dhcpd_scripts_variable + '/status_dhcp6.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
     #if the command returns without error
     #includes both codes 0 and 3 because with a "systemctl status" command a code 0 means the service
@@ -119,7 +117,7 @@ def rebuildDhcp():
     except:
         return jsonify({"status": 502, "message": "Unable to find node configuration files"}), 502
     #bash command resets the config file with a new template
-    query = subprocess.run(["bash", os.getcwd() + dhcpd_scripts_variable + "/reset_dhcpd_config.sh"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query = subprocess.run(["sudo", os.getcwd() + dhcpd_scripts_variable + "/reset_dhcpd_config.sh"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     #if the script ran without error
     if query.returncode == 0:
         for node in fileNameList:
@@ -140,7 +138,7 @@ def deleteAFile(fileName):
     fileNameList = os.listdir('/var/lib/tftpboot/hosts.d/')
     fileNameCheck = fileNameList.count(fileName)
     if fileNameCheck == 1:
-        query = subprocess.run(["bash", os.getcwd() + dhcpd_scripts_variable + "/rm_dhcp_file.sh", ""+fileName], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        query = subprocess.run(["sudo", os.getcwd() + dhcpd_scripts_variable + "/rm_dhcp_file.sh", ""+fileName], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         #if there were no errors
         if query.returncode == 0:
             return jsonify({"status": 200, "message": "File was deleted"}), 200
