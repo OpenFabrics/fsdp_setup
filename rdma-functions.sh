@@ -1311,14 +1311,17 @@ __setup_dhcp_client_loop() {
 		ips)
 			i=0
 			k=0
+			IP_addrs=()
 			shift 1;;
 		macs)
 			i=0
 			k=1
+			HWADDRs=()
 			shift 1;;
 		gids)
 			i=0
 			k=2
+			GUIDs=()
 			shift 1;;
 		instance)
 			instance=$2
@@ -1326,13 +1329,13 @@ __setup_dhcp_client_loop() {
 		*)
 			case $k in
 			0)
-				IP_addrs=($IP_addrs[*] $1)
+				IP_addrs=(${IP_addrs[*]} $1)
 				shift;;
 			1)
-				HWADDRs=($HWADDRs[*] $1)
+				HWADDRs=(${HWADDRs[*]} $1)
 				shift;;
 			2)
-				GUIDs=($GUIDs[*] $1)
+				GUIDs=(${GUIDs[*]} $1)
 				shift;;
 			*)
 				echo "Unknown option to __setup_dhcp_client_loop"
