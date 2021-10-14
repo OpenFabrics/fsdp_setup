@@ -721,7 +721,7 @@ BEGIN {
 		for (j=0; j<=254; j++) {
 			if ((net_part[1], j) in net) {
 				net_ip = j
-				net_name = net[$i, j]
+				net_name = net[net_part[1], j]
 				if (net_part[2] == "")
 					printf("'"${network_prefix}"'.%d.%d\t\t%s-%s\n",
 						net_ip, host_ip, net_name, $1)
