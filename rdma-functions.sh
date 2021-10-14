@@ -1321,8 +1321,6 @@ __setup_dhcp_client_loop() {
 			k=2
 			shift 1;;
 		instance)
-			i=0
-			k=0
 			instance=$2
 			shift 2;;
 		*)
@@ -1356,9 +1354,10 @@ __setup_dhcp_client_loop() {
 	for id in ${ID[*]}; do
 		let ids++
 	done
+	k=0
 	while [ $k -lt $macs -o $k -lt $ids ]; do
 		local host_instance="$RDMA_HOST.$instance.$k"
-		local host_file="~/$host_instance"
+		local host_file="/root/$host_instance"
 		echo -ne "host $host_instance {\n" > $host_file
 		echo -ne "\tfixed-address " >> $host_file
 		local j=0
