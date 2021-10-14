@@ -715,14 +715,20 @@ BEGIN {
 {
 	split($1, host_fields, "-")
 	group = host_fields[1]
-	host_ip = offset[group] + host_fields[2]
+	host_ip = offset[group] + (host_fields[2] * 5)
 	for (i=2; i<=NF; i++) {
+		split($i, net_part, ".")
 		for (j=0; j<=254; j++) {
-			if (($i, j) in net) {
+			if ((net_part[1], j) in net) {
 				net_ip = j
 				net_name = net[$i, j]
-				printf("'"${network_prefix}"'.%d.%d\t\t%s-%s\n",
-					net_ip, host_ip, net_name, $1)
+				if (net_part[2] == "")
+					printf("'"${network_prefix}"'.%d.%d\t\t%s-%s\n",
+						net_ip, host_ip, net_name, $1)
+				else
+					printf("'"${network_prefix}"'.%d.%d\t\t%s-%s.%d\n",
+						net_ip, host_ip + net_part[2],
+						net_name, $1, net_part[2])
 			}
 		}
 	}
