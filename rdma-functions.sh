@@ -145,18 +145,24 @@ Nmcli_Con_Reload() {
 }
 
 Create_Fixed_Addresses() {
-	i[0]=i[1]=i[2]=i[3]=i[4]=0
+	declare -A i
+	i[0]=0; i[1]=0; i[2]=0; i[3]=0; i[4]=0
 	for fabrics in $*; do
 		fabric=`echo $fabrics | cut -f 1 -d '.'`
-		instance=`echo $fabrics | cut -f 2 -d '.'`
+		instance=`echo $fabrics | cut -f 2 -s -d '.'`
 		[ -z "$instance" ] && instance=0
 		for subnet in ${all_nets[*]}; do
 			net_part=`echo $subnet | cut -f 1 -d '.'`
 			__if_x_in_y $fabric $net_part || continue
 			if [ "$instance" -gt 0 ]; then
-				IPS[$instance][$i[$instance]]=`grep -w ${subnet}-${host_part}.${instance} /etc/hosts | awk '{print $1}'`
+				case $instance in
+				1) IP_addrs1[${i[$instance]}]=`grep -w ${subnet}-${host_part}.${instance} /etc/hosts | awk '{print $1}'`;;
+				2) IP_addrs2[${i[$instance]}]=`grep -w ${subnet}-${host_part}.${instance} /etc/hosts | awk '{print $1}'`;;
+				3) IP_addrs3[${i[$instance]}]=`grep -w ${subnet}-${host_part}.${instance} /etc/hosts | awk '{print $1}'`;;
+				4) IP_addrs4[${i[$instance]}]=`grep -w ${subnet}-${host_part}.${instance} /etc/hosts | awk '{print $1}'`;;
+				esac
 			else
-				IPS[$instance][$i[$instance]]=`grep -w ${subnet}-${host_part} /etc/hosts | awk '{print $1}'`
+				IP_addrs0[i[0]]=`grep -w ${subnet}-${host_part} /etc/hosts | awk '{print $1}'`
 			fi
 			let i[$instance]++
 		done
