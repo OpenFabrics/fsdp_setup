@@ -1386,12 +1386,12 @@ __setup_dhcp_client_loop() {
 
 Setup_Dhcp_Client() {
 	rm -f ~/$RDMA_HOST.dhcp.?.?
-	[ -z "$IP_addrs0[*]" ] && return
-	__setup_dhcp_client_loop ips $IP_addrs0[*] macs $HARDWARE0[*] gids $GIDS0[*] instance 0
-	[ -n "$IP_addrs1[*]" ] && __setup_dhcp_client_loop ips $IP_addrs1[*] macs $HARDWARE1[*] gids $GIDS1[*] instance 1
-	[ -n "$IP_addrs2[*]" ] && __setup_dhcp_client_loop ips $IP_addrs2[*] macs $HARDWARE2[*] gids $GIDS2[*] instance 2
-	[ -n "$IP_addrs3[*]" ] && __setup_dhcp_client_loop ips $IP_addrs3[*] macs $HARDWARE3[*] gids $GIDS3[*] instance 3
-	[ -n "$IP_addrs4[*]" ] && __setup_dhcp_client_loop ips $IP_addrs4[*] macs $HARDWARE4[*] gids $GIDS4[*] instance 4
+	[ -z "${IP_addrs0[*]}" ] && return
+	__setup_dhcp_client_loop ips ${IP_addrs0[*]} macs ${HARDWARE0[*]} gids ${GIDS0[*]} instance 0
+	[ -n "${IP_addrs1[*]}" ] && __setup_dhcp_client_loop ips ${IP_addrs1[*]} macs ${HARDWARE1[*]} gids ${GIDS1[*]} instance 1
+	[ -n "${IP_addrs2[*]}" ] && __setup_dhcp_client_loop ips ${IP_addrs2[*]} macs ${HARDWARE2[*]} gids ${GIDS2[*]} instance 2
+	[ -n "${IP_addrs3[*]}" ] && __setup_dhcp_client_loop ips ${IP_addrs3[*]} macs ${HARDWARE3[*]} gids ${GIDS3[*]} instance 3
+	[ -n "${IP_addrs4[*]}" ] && __setup_dhcp_client_loop ips ${IP_addrs4[*]} macs ${HARDWARE4[*]} gids ${GIDS4[*]} instance 4
 }
 
 Unlimit_Resources() {
