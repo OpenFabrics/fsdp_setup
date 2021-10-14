@@ -1300,40 +1300,36 @@ __setup_dhcp_client_loop() {
 	local eths=0
 	local gids=0
 	local ids=0
-	local -A IP_addrs=(${1[*]})
-	local -A HARDWARE=(${2[*]})
-	local -A GIDS=(${3[*]})
-	local instance=$4
 	local k=0
 
-	for mac in ${HARDWARE[*]}; do
+	for mac in ${2[*]}; do
 		let eths++
 		let macs++
 	done
-	for gid in ${GIDS[*]}; do
+	for gid in ${3[*]}; do
 		let gids++
 		let macs++
 	done
-	Create_Client_Ids ${GIDS[*]}
+	Create_Client_Ids ${3[*]}
 	for id in ${ID[*]}; do
 		let ids++
 	done
 	while [ $k -lt $macs -o $k -lt $ids ]; do
-		local host_instance="$RDMA_HOST.$instance.$k"
+		local host_instance="$RDMA_HOST.$4.$k"
 		local host_file="~/$host_instance"
 		echo -ne "host $host_instance {\n" > $host_file
 		echo -ne "\tfixed-address " >> $host_file
 		local j=0
-		for i in ${IP_addrs[*]}; do
+		for i in ${1[*]}; do
 			[ $j -gt 0 ] && echo -ne "," >> $host_file
 			echo -ne "$i" >> $host_file
 			let j++
 		done
 		echo -ne ";\n" >> $host_file
 		if [ $k -lt $eths ]; then
-			echo -ne "\thardware ethernet ${HARDWARE[$k]};\n" >> $host_file
+			echo -ne "\thardware ethernet ${2[$k]};\n" >> $host_file
 		elif [ $(($k - $eths)) -lt $gids ]; then
-			echo -ne "\thardware infiniband ${GIDS[$(($k - $eths))]};\n" >> $host_file
+			echo -ne "\thardware infiniband ${3[$(($k - $eths))]};\n" >> $host_file
 		fi
 		[ -n "${ID[$k]}" ] && \
 			echo -ne "\toption dhcp-client-identifier=${ID[$k]};\n" >> $host_file
@@ -1345,9 +1341,11 @@ __setup_dhcp_client_loop() {
 Setup_Dhcp_Client() {
 	rm -f ~/$RDMA_HOST.dhcp.?.?
 	[ -z "$IP_addrs0[*]" ] && return
-	__setup_dhcp_client_loop ($IP_addrs0[*]) ($HARDWARE0[*]) ($GIDS0[*]) 0
-	[ -n "$IP_addrs1[*]" ] && __setup_dhcp_client_loop ($IP_addrs1[*]) ($HARDWARE1[*]) ($GIDS1[*]) 1
-	[ -n "$IP_addrs2[*]" ] && __setup_dhcp_client_loop ($IP_addrs2[*]) ($HARDWARE2[*]) ($GIDS2[*]) 1
+	__setup_dhcp_client_loop $IP_addrs0 $HARDWARE0 $GIDS0 0
+	[ -n "$IP_addrs1[*]" ] && __setup_dhcp_client_loop $IP_addrs1 $HARDWARE1 $GIDS1 1
+	[ -n "$IP_addrs2[*]" ] && __setup_dhcp_client_loop $IP_addrs2 $HARDWARE2 $GIDS2 2
+	[ -n "$IP_addrs3[*]" ] && __setup_dhcp_client_loop $IP_addrs3 $HARDWARE3 $GIDS3 3
+	[ -n "$IP_addrs4[*]" ] && __setup_dhcp_client_loop $IP_addrs4 $HARDWARE4 $GIDS4 4
 }
 
 Unlimit_Resources() {
