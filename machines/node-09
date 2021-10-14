@@ -19,10 +19,10 @@ Create_Rdma_Interfaces mlx5 roce.2 b8:ce:f6:2c:5f:e3 47
 Create_Multicast_Route mlx5_ib0
 
 Create_Fixed_Addresses ${HOST_FABRICS[*]}
-HARDWARE[0]=(34:80:0d:b4:9c:96)
-HARDWARE[1]=(b8:ce:f6:2c:5f:df)
-HARDWARE[2]=(b8:ce:f6:2c:5f:e3)
-GIDS[0]=(b8:ce:f6:03:00:2c:5f:de)
-GIDS[1]=(b8:ce:f6:03:00:2c:5f:e2)
+HARDWARE0=(34:80:0d:b4:9c:96)
+HARDWARE1=(b8:ce:f6:2c:5f:df)
+HARDWARE2=(b8:ce:f6:2c:5f:e3)
+GIDS0=(b8:ce:f6:03:00:2c:5f:de)
+GIDS1=(b8:ce:f6:03:00:2c:5f:e2)
 
 Setup_Nfs_Client_Mounts
