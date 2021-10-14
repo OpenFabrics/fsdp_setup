@@ -1295,47 +1295,59 @@ BEGIN {
 	done
 }
 
-Setup_Dhcp_Client() {
-	rm -f ~/$RDMA_HOST.dhcp.?
-	[ -z "${IPS[*]}" ] && return
-	macs=0
-	eths=0
+__setup_dhcp_client_loop() {
+	local macs=0
+	local eths=0
+	local gids=0
+	local ids=0
+	local -A IP_addrs=(${1[*]})
+	local -A HARDWARE=(${2[*]})
+	local -A GIDS=(${3[*]})
+	local instance=$4
+	local k=0
+
 	for mac in ${HARDWARE[*]}; do
 		let eths++
 		let macs++
 	done
-	gids=0
 	for gid in ${GIDS[*]}; do
 		let gids++
 		let macs++
 	done
 	Create_Client_Ids ${GIDS[*]}
-	ids=0
 	for id in ${ID[*]}; do
 		let ids++
 	done
-	k=0
 	while [ $k -lt $macs -o $k -lt $ids ]; do
-		echo -ne "host $RDMA_HOST.$k {\n" > ~/$RDMA_HOST.dhcp.$k
-		echo -ne "\tfixed-address " >> ~/$RDMA_HOST.dhcp.$k
-		j=0
-		for i in ${IPS[*]}; do
-			[ $j -gt 0 ] && echo -ne "," >> ~/$RDMA_HOST.dhcp.$k
-			echo -ne "$i" >> ~/$RDMA_HOST.dhcp.$k
+		local host_instance="$RDMA_HOST.$instance.$k"
+		local host_file="~/$host_instance"
+		echo -ne "host $host_instance {\n" > $host_file
+		echo -ne "\tfixed-address " >> $host_file
+		local j=0
+		for i in ${IP_addrs[*]}; do
+			[ $j -gt 0 ] && echo -ne "," >> $host_file
+			echo -ne "$i" >> $host_file
 			let j++
 		done
-		echo -ne ";\n" >> ~/$RDMA_HOST.dhcp.$k
+		echo -ne ";\n" >> $host_file
 		if [ $k -lt $eths ]; then
-			echo -ne "\thardware ethernet ${HARDWARE[$k]};\n" >> ~/$RDMA_HOST.dhcp.$k
+			echo -ne "\thardware ethernet ${HARDWARE[$k]};\n" >> $host_file
 		elif [ $(($k - $eths)) -lt $gids ]; then
-			echo -ne "\thardware infiniband ${GIDS[$(($k - $eths))]};\n" >> ~/$RDMA_HOST.dhcp.$k
+			echo -ne "\thardware infiniband ${GIDS[$(($k - $eths))]};\n" >> $host_file
 		fi
 		[ -n "${ID[$k]}" ] && \
-			echo -ne "\toption dhcp-client-identifier=${ID[$k]};\n" >> ~/$RDMA_HOST.dhcp.$k
-		echo -ne "}\n\n" >> ~/$RDMA_HOST.dhcp.$k
+			echo -ne "\toption dhcp-client-identifier=${ID[$k]};\n" >> $host_file
+		echo -ne "}\n\n" >> $host_file
 		let k++
 	done
-	tftp -m ascii builder-00 -c put ~/$RDMA_HOST.dhcp.? hosts.d/
+}
+
+Setup_Dhcp_Client() {
+	rm -f ~/$RDMA_HOST.dhcp.?.?
+	[ -z "$IP_addrs0[*]" ] && return
+	__setup_dhcp_client_loop ($IP_addrs0[*]) ($HARDWARE0[*]) ($GIDS0[*]) 0
+	[ -n "$IP_addrs1[*]" ] && __setup_dhcp_client_loop ($IP_addrs1[*]) ($HARDWARE1[*]) ($GIDS1[*]) 1
+	[ -n "$IP_addrs2[*]" ] && __setup_dhcp_client_loop ($IP_addrs2[*]) ($HARDWARE2[*]) ($GIDS2[*]) 1
 }
 
 Unlimit_Resources() {
