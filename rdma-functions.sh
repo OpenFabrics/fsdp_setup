@@ -145,13 +145,20 @@ Nmcli_Con_Reload() {
 }
 
 Create_Fixed_Addresses() {
-	i=0
-	for fabric in $*; do
+	i[0]=i[1]=i[2]=i[3]=i[4]=0
+	for fabrics in $*; do
+		fabric=`echo $fabrics | cut -f 1 -d '.'`
+		instance=`echo $fabrics | cut -f 2 -d '.'`
+		[ -z "$instance" ] && instance=0
 		for subnet in ${all_nets[*]}; do
 			net_part=`echo $subnet | cut -f 1 -d '.'`
 			__if_x_in_y $fabric $net_part || continue
-			IPS[$i]=`grep -w ${subnet}-${host_part} /etc/hosts | awk '{print $1}'`
-			let i++
+			if [ "$instance" -gt 0 ]; then
+				IPS[$instance][$i[$instance]]=`grep -w ${subnet}-${host_part}.${instance} /etc/hosts | awk '{print $1}'`
+			else
+				IPS[$instance][$i[$instance]]=`grep -w ${subnet}-${host_part} /etc/hosts | awk '{print $1}'`
+			fi
+			let i[$instance]++
 		done
 	done
 }
@@ -584,12 +591,13 @@ Create_Rdma_Interfaces() {
 		return 1
 	fi
 
-	CM=""
-	TYPE=InfiniBand
-	HWADDR=hwaddr
-	__get_net_from_subnet $2
+	local CM=""
+	local TYPE=InfiniBand
+	local HWADDR=hwaddr
+	local SUBNET=`echo $2 | cut -f 1 -d '.'`
+	__get_net_from_subnet $SUBNET
 	start_net=$net
-	case "$2" in
+	case "$SUBNET" in
 	ib0)
 		# In the FSDP we only have 2k nets and only mlx5 devices
 		# so there won't be any connected mode machines
