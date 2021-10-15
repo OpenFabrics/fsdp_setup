@@ -25,14 +25,14 @@ Action to be Performed | HTTP Route | Method
 
      This route should restart the DHCP 4 service and either return a 200OK response if it was successful or a 500 response if there was an error while restarting.
 
-     **builder-00.ofa.iol.unh.edu:8080/restartDhcp6Service** - Method = POST
+    **builder-00.ofa.iol.unh.edu:8080/restartDhcp6Service** - Method = POST
 
-     This route should restart, much like the previous, the DHCP 6 service and either return a 200OK response if it was successful or a 500 response if there was an error while restarting.
+     This route, much like the previous, should restart the DHCP 6 service and either return a 200OK response if it was successful or a 500 response if there was an error while restarting.
 
 * ### Check the status of DHCP4 and DHCP6 services
      **builder-00.ofa.iol.unh.edu:8080/checkDhcpStatus** - Method = POST
 
-     This route should query the status of both DHCP4 and DHCP6 and it will either return a 200 with a json containing the status of both if it was able to find the status of both, a 206 response if it found the status of one but failed to find the status of the other, or a 500 response if there was an error and it failed to find the status of either.
+     This route should query the status of both DHCP4 and DHCP6 and it will either return a 200 response with a json containing the status of both if it was able to find the status of both, a 206 response if it found the status of one but failed to find the status of the other, or a 500 response if there was an error and it failed to find the status of either.
 
 * ### Rebuild the DHCP config
      **builder-00.ofa.iol.unh.edu:8080/rebuildDhcp** - Method = POST
