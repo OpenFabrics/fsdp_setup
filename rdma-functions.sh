@@ -1392,7 +1392,7 @@ __setup_dhcp_client_loop() {
 }
 
 Setup_Dhcp_Client() {
-	rm -f /root/$RDMA_HOST.dhcp.?.?
+	rm -f /root/$RDMA_HOST.?.*
 	[ -z "${IP_addrs0[*]}" ] && return
 	__setup_dhcp_client_loop ips ${IP_addrs0[*]} macs ${HARDWARE0[*]} gids ${GIDS0[*]} instance 0
 	[ -n "${IP_addrs1[*]}" ] && __setup_dhcp_client_loop ips ${IP_addrs1[*]} macs ${HARDWARE1[*]} gids ${GIDS1[*]} instance 1
