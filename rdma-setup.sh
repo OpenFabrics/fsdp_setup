@@ -105,11 +105,3 @@ Fix_Boot_Loader
 #Enable_Fips_Mode
 
 restorecon -R /root /etc /boot /lib
-
-# Always rebuild the initrd in case we changed module options
-# or enabled FIPS mode
-if [ "$OS" = "rhel" -a "$RELEASE" -le 5 ]; then
-	mkinitrd -f
-else
-	dracut -f
-fi

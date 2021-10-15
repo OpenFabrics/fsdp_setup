@@ -1449,5 +1449,4 @@ Enable_Fips_Mode() {
 	[ -f /boot/grub/grub.conf ] && sed -e '/.*fips=1.*/n; s#.*kernel /vmlinuz-.*#& '"${BOOT}"'#' -i /boot/grub/grub.conf
 	[ -f /etc/default/grub ] && (. /etc/default/grub; sed -e '/.*fips=1.*/n; s#GRUB_CMDLINE_LINUX=".*"#GRUB_CMDLINE_LINUX="'"$GRUB_CMDLINE_LINUX ${BOOT}"'"#' -i /etc/default/grub) && grub2-mkconfig -o /boot/grub2/grub.cfg
 	dracut -f -v
-
 }
