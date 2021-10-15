@@ -123,7 +123,7 @@ def rebuildDhcp():
     #if the script ran without error
     if query.returncode == 0:
         for node in fileNameList:
-            query2 = subprocess.run(["bash", os.getcwd() + dhcpd_scripts_variable + "/rebuild_dhcp.sh", ""+node], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            query2 = subprocess.run(["sudo", os.path.abspath(os.path.dirname(__file__)) + "/" + dhcpd_scripts_variable + "/rebuild_dhcp.sh", ""+node], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         return jsonify({"status": 200, "message": "Rebuilt dhcpd configuration successfully"}), 200
     else:
         return jsonify({"status": 500, "message": "Error rebuilding the dhcpd configuration file"}), 500
@@ -153,4 +153,3 @@ def deleteAFile(fileName):
 
 if __name__ == "__main__":
     app.run(port=PORT)
-
