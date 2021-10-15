@@ -48,6 +48,12 @@ Action to be Performed | HTTP Route | Method
 
 ## Installation
 
-The contents of this directory should be copied to the /opt/dhcpd_api directory
-on the builder-00.ofa.iol.unh.edu.  If an alternate path is used, the systemd
-.service will will need to be changed appropriately.
+1. The contents of this directory should be copied to the /opt/dhcpd_api directory
+on the builder-00.ofa.iol.unh.edu. 
+
+2. After you've done that, you'll need to create a python virtual environment folder called "venv" in the /opt/dhcpd_api directory and install the dependancies from the requirements.txt file in that environment.
+3. The API will be running under the user dhcp_api so if there isn't a user under that name you'll need to create one
+4. From there you need to move the "dhcp_api" file into /etc/sudoers.d/ directory to ensure that the user the API is running on will have the necessary permissions.
+5. Then you just need to move the dhcp_api.service file into the /etc/systemd/system directory and once you do a daemon-reload it should run as a service and be operational.
+
+NOTE: If you do not place the API files into the /opt/dhcpd_api directory you will need to change the dhcp_api.service file to accuractely reflect the new paths
