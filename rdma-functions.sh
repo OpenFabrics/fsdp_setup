@@ -159,13 +159,13 @@ Create_Fixed_Addresses() {
 			__if_x_in_y $fabric $net_part || continue
 			if [ "$instance" -gt 0 ]; then
 				case $instance in
-				1) IP_addrs1=(${IP_addrs1[*]} `grep -w ${subnet}-${host_part}.${instance} /etc/hosts | awk '{print $1}'`);;
-				2) IP_addrs2=(${IP_addrs2[*]} `grep -w ${subnet}-${host_part}.${instance} /etc/hosts | awk '{print $1}'`);;
-				3) IP_addrs3=(${IP_addrs3[*]} `grep -w ${subnet}-${host_part}.${instance} /etc/hosts | awk '{print $1}'`);;
-				4) IP_addrs4=(${IP_addrs4[*]} `grep -w ${subnet}-${host_part}.${instance} /etc/hosts | awk '{print $1}'`);;
+				1) IP_addrs1=(${IP_addrs1[*]} `grep -w ${subnet}-${RDMA_HOST}.${instance} /etc/hosts | awk '{print $1}'`);;
+				2) IP_addrs2=(${IP_addrs2[*]} `grep -w ${subnet}-${RDMA_HOST}.${instance} /etc/hosts | awk '{print $1}'`);;
+				3) IP_addrs3=(${IP_addrs3[*]} `grep -w ${subnet}-${RDMA_HOST}.${instance} /etc/hosts | awk '{print $1}'`);;
+				4) IP_addrs4=(${IP_addrs4[*]} `grep -w ${subnet}-${RDMA_HOST}.${instance} /etc/hosts | awk '{print $1}'`);;
 				esac
 			else
-				IP_addrs0=(${IP_addrs0[*]} `grep -w ${subnet}-${host_part} /etc/hosts | awk '{print $1}'`)
+				IP_addrs0=(${IP_addrs0[*]} `grep -w ${subnet}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`)
 			fi
 		done
 	done
@@ -308,13 +308,13 @@ echo "		interfaces.  Defaults to no."
 	# but not on Fedora 16 or earlier
 	if [ "$OS" = "rhel" -a "$RELEASE" -lt 6 -a "$bootproto" = "dhcp" -a "$defroute" = "no" ]; then
 		fabric=`echo "$devname" | cut -f 2- -d '_' | sed -e 's/800//'`
-		ipaddr=`grep ${fabric}-${host_part} /etc/hosts | awk '{print $1}'`
+		ipaddr=`grep ${fabric}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`
 		[ -n "$ipaddr" ] && bootproto=static
 	fi
 	if [ "$iftype" = InfiniBand -a "$bootproto" = dhcp ]; then
 		if [ $OS = fedora -a $RELEASE -lt 17 ] || [ $OS = rhel -a $RELEASE -lt 6 ]; then
 			fabric=`echo "$devname" | cut -f 2- -d '_' | sed -e 's/800//'`
-			ipaddr=`grep ${fabric}-${host_part} /etc/hosts | awk '{print $1}'`
+			ipaddr=`grep ${fabric}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`
 			[ -n "$ipaddr" ] && bootproto=static
 		fi
 	fi
@@ -1043,7 +1043,7 @@ Setup_Client_Mounts <server> <protocol> <fstype> [backstore <backstore>]
 \tfstype - xfs or ext4 are currently supported
 \tbackstore - name of backing device on server, will be prefixed with
 \t  either iser- or srp- depending on protocol, if none is given,
-\t  will use the default of <protocol>-$host_part
+\t  will use the default of <protocol>-$RDMA_HOST
 \tfabrics - a list of fabrics to use, if none are give, all available
 \t  are used instead"
 }
@@ -1060,7 +1060,7 @@ Setup_Client_Mounts()
 	local protocol=$2
 	local fstype=$3
 	shift 3
-	local backstore=$host_part
+	local backstore=$RDMA_HOST
 	case $1 in
 	backstore)
 		backstore=$2
