@@ -20,13 +20,13 @@ if len(sys.argv) > 1:
         PORT = sys.argv[1]
     else:
         raise ValueError("Invalid port. Port must be in integer greater than 0.")
-        
+
 #if the command doesn't have an additional argument
 else:
     raise ReferenceError("Port required. Command should be, \"python3 app.py <PORT>\"")
 
-#serverName = 'builder-00.ofa.iol.unh.edu:' + str(PORT)
-#app.config['SERVER_NAME'] = serverName 
+serverName = 'builder-00.ofa.iol.unh.edu:' + str(PORT)
+app.config['SERVER_NAME'] = serverName
 
 dhcpd_scripts_variable = "dhcpd_scripts"
 
@@ -45,7 +45,7 @@ def getFileNames():
 #--------------------------------
 @app.route('/restartDhcp4Service', methods=["POST"])
 def restartDhcp():
-    query = subprocess.run(['sudo', os.getcwd() + dhcpd_scripts_variable +  '/restart_dhcp.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query = subprocess.run(['sudo', os.path.abspath(os.path.dirname(__file__)) + "/" + dhcpd_scripts_variable +  '/restart_dhcp.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     #if the command returns without error
     if query.returncode == 0:
         return jsonify({"status": 200, "message": "Dhcp4 restarted successfully"}), 200
@@ -57,11 +57,11 @@ def restartDhcp():
 #--------------------------------
 @app.route('/restartDhcp6Service', methods=["POST"])
 def restartdhcp6():
-    query = subprocess.run(['sudo', os.getcwd() + dhcpd_scripts_variable + '/restart_dhcp6.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query = subprocess.run(['sudo', os.path.abspath(os.path.dirname(__file__)) + "/" + dhcpd_scripts_variable + '/restart_dhcp6.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     if query.returncode == 0:
         return jsonify({"status": 200, "message": "dhcp6 was restarted successfully"}), 200
     else:
-        return jsonify({"status": 500, "message": "internal server error"}), 500
+        return jsonify({"status": 500, "message": "There was an error retarting Dhcp6"}), 500
 
 #--------------------------------
 #       check dhcp status
@@ -69,9 +69,11 @@ def restartdhcp6():
 @app.route('/checkDhcpStatus', methods=["POST"])
 def checkDhcp():
     #bash commands to check status of both dhcp4 and dhcp6
-    query = subprocess.run(['sudo', os.getcwd() + dhcpd_scripts_variable + '/status_dhcp4.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    query2 = subprocess.run(['sudo', os.getcwd() + dhcpd_scripts_variable + '/status_dhcp6.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    
+    #found how to use os.path,abspath from https://stackoverflow.com/questions/57311876/os-getcwd-returns-a-slash
+    #had to use this method because os.getcwd was working inconsistently
+    query = subprocess.run(['sudo', os.path.abspath(os.path.dirname(__file__)) + "/" + dhcpd_scripts_variable + '/status_dhcp4.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query2 = subprocess.run(['sudo', os.path.abspath(os.path.dirname(__file__)) + "/" + dhcpd_scripts_variable + '/status_dhcp6.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
     #if the command returns without error
     #includes both codes 0 and 3 because with a "systemctl status" command a code 0 means the service
     #is running and a code 3 means it is inactive
@@ -91,7 +93,7 @@ def checkDhcp():
         dhcpOutput = dhcpArr[2].strip()
         dhcpOutput = dhcpOutput.replace("Active", "Status", 1)
         return dhcpOutput
-    
+
     #if both dchp4 and dhcp6 have a status 
     if dhcp4_status_exists and dhcp6_status_exists:
         return jsonify({"status": 200, "message": {"dhcp4Status": formatDhcp(query.stdout), "dhcp6Status": formatDhcp(query2.stdout)}}), 200
@@ -117,7 +119,7 @@ def rebuildDhcp():
     except:
         return jsonify({"status": 502, "message": "Unable to find node configuration files"}), 502
     #bash command resets the config file with a new template
-    query = subprocess.run(["sudo", os.getcwd() + dhcpd_scripts_variable + "/reset_dhcpd_config.sh"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query = subprocess.run(["sudo", os.path.abspath(os.path.dirname(__file__)) + "/" + dhcpd_scripts_variable + "/reset_dhcpd_config.sh"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     #if the script ran without error
     if query.returncode == 0:
         for node in fileNameList:
@@ -125,8 +127,8 @@ def rebuildDhcp():
         return jsonify({"status": 200, "message": "Rebuilt dhcpd configuration successfully"}), 200
     else:
         return jsonify({"status": 500, "message": "Error rebuilding the dhcpd configuration file"}), 500
-    
-    
+
+
 
 #------------------------------
 #      delete a node file
@@ -138,7 +140,7 @@ def deleteAFile(fileName):
     fileNameList = os.listdir('/var/lib/tftpboot/hosts.d/')
     fileNameCheck = fileNameList.count(fileName)
     if fileNameCheck == 1:
-        query = subprocess.run(["sudo", os.getcwd() + dhcpd_scripts_variable + "/rm_dhcp_file.sh", ""+fileName], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        query = subprocess.run(["sudo", os.path.abspath(os.path.dirname(__file__)) + "/" + dhcpd_scripts_variable + "/rm_dhcp_file.sh", ""+fileName], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         #if there were no errors
         if query.returncode == 0:
             return jsonify({"status": 200, "message": "File was deleted"}), 200
@@ -151,3 +153,4 @@ def deleteAFile(fileName):
 
 if __name__ == "__main__":
     app.run(port=PORT)
+
