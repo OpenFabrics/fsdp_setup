@@ -165,10 +165,15 @@ Create_Fixed_Addresses() {
 				4) IP_addrs4=(${IP_addrs4[*]} `grep -w ${subnet}-${RDMA_HOST}.${instance} /etc/hosts | awk '{print $1}'`);;
 				esac
 			else
-				IP_addrs0=(${IP_addrs0[*]} `grep -w ${subnet}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`)
+				IP_addrs0=(${IP_addrs0[*]} `grep -w "${subnet}-${RDMA_HOST}$" /etc/hosts | awk '{print $1}'`)
 			fi
 		done
 	done
+	echo "IP_addrs0= ${IP_addrs0[*]}"
+	echo "IP_addrs1= ${IP_addrs1[*]}"
+        echo "IP_addrs2= ${IP_addrs2[*]}"
+        echo "IP_addrs3= ${IP_addrs3[*]}"
+        echo "IP_addrs4= ${IP_addrs4[*]}"
 }
 
 Create_Interface() {
