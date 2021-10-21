@@ -7,6 +7,14 @@ app = Flask(__name__)
 
 dhcpd_scripts_variable = "dhcpd_scripts"
 
+#function for running bash scripts
+def run_script(script_name, arg = "default"):
+    if arg != "default":
+        query = subprocess.run(["sudo", os.path.abspath(os.path.dirname(__file__)) + "/" + dhcpd_scripts_variable + script_name, ""+arg], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    else:
+        query = subprocess.run(['sudo', os.path.abspath(os.path.dirname(__file__)) + "/" + dhcpd_scripts_variable + script_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return query
+
 #--------------------------------
 #    get a list of file names
 #--------------------------------
@@ -22,7 +30,7 @@ def get_file_names():
 #--------------------------------
 @app.route('/restartDhcp4Service', methods=["POST"])
 def restart_dhcp():
-    query = subprocess.run(['sudo', os.path.abspath(os.path.dirname(__file__)) + "/" + dhcpd_scripts_variable +  '/restart_dhcp.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query = run_script('/restart_dhcp.sh')
     #if the command returns without error
     if query.returncode == 0:
         return jsonify({"status": 200, "message": "Dhcp4 restarted successfully"}), 200
@@ -34,7 +42,7 @@ def restart_dhcp():
 #--------------------------------
 @app.route('/restartDhcp6Service', methods=["POST"])
 def restart_dhcp6():
-    query = subprocess.run(['sudo', os.path.abspath(os.path.dirname(__file__)) + "/" + dhcpd_scripts_variable + '/restart_dhcp6.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query = run_script('/restart_dhcp6.sh')
     if query.returncode == 0:
         return jsonify({"status": 200, "message": "dhcp6 was restarted successfully"}), 200
     else:
@@ -48,8 +56,8 @@ def check_dhcp():
     #bash commands to check status of both dhcp4 and dhcp6
     #found how to use os.path,abspath from https://stackoverflow.com/questions/57311876/os-getcwd-returns-a-slash
     #had to use this method because os.getcwd was working inconsistently
-    query = subprocess.run(['sudo', os.path.abspath(os.path.dirname(__file__)) + "/" + dhcpd_scripts_variable + '/status_dhcp4.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    query2 = subprocess.run(['sudo', os.path.abspath(os.path.dirname(__file__)) + "/" + dhcpd_scripts_variable + '/status_dhcp6.sh'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query = run_script('/status_dhcp4.sh')
+    query2 = run_script('/status_dhcp6.sh')
 
     #if the command returns without error
     #includes both codes 0 and 3 because with a "systemctl status" command a code 0 means the service
@@ -73,13 +81,13 @@ def check_dhcp():
 
     #if both dchp4 and dhcp6 have a status 
     if dhcp4_status_exists and dhcp6_status_exists:
-        return jsonify({"status": 200, "message": {"dhcp4Status": format_dhcp(query.stdout), "dhcp6Status": formatDhcp(query2.stdout)}}), 200
+        return jsonify({"status": 200, "message": {"dhcp4Status": format_dhcp(query.stdout), "dhcp6Status": format_dhcp(query2.stdout)}}), 200
     #if only dhcp4 has a status
     elif dhcp4_status_exists and dhcp6_status_exists != True:
         return jsonify({"status": 206, "message": {"dhcp4Status": format_dhcp(query.stdout), "dhcp6Status": "Unknown"}}), 206
     #if only dhcp6 has a status
     elif dhcp6_status_exists and dhcp4_status_exists != True:
-        return jsonify({"status": 206, "message": {"dhcp4Status": "Unknown", "dhcp6Status": formatDhcp(query2.stdout)}}), 206
+        return jsonify({"status": 206, "message": {"dhcp4Status": "Unknown", "dhcp6Status": format_dhcp(query2.stdout)}}), 206
     #if neither status can be found
     else:
         return jsonify({"status": 500, "message": "Internal server error. Could not find status of dhcp4 or dhcp6."}), 500
@@ -96,11 +104,11 @@ def rebuild_dhcp():
     except:
         return jsonify({"status": 502, "message": "Unable to find node configuration files"}), 502
     #bash command resets the config file with a new template
-    query = subprocess.run(["sudo", os.path.abspath(os.path.dirname(__file__)) + "/" + dhcpd_scripts_variable + "/reset_dhcpd_config.sh"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    query = run_script("/reset_dhcpd_config.sh")
     #if the script ran without error
     if query.returncode == 0:
         for node in file_name_list:
-            query2 = subprocess.run(["sudo", os.path.abspath(os.path.dirname(__file__)) + "/" + dhcpd_scripts_variable + "/rebuild_dhcp.sh", ""+node], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            query2 = run_script("/rebuild_dhcp.sh", node)
         return jsonify({"status": 200, "message": "Rebuilt dhcpd configuration successfully"}), 200
     else:
         return jsonify({"status": 500, "message": "Error rebuilding the dhcpd configuration file"}), 500
@@ -110,14 +118,14 @@ def rebuild_dhcp():
 #------------------------------
 #      delete a node file
 #------------------------------
-@app.route('/hosts.d/<fileName>', methods=["DELETE"])
+@app.route('/hosts.d/<file_name>', methods=["DELETE"])
 def delete_a_file(file_name):
     #creates a list of file names from the given path and then uses the .count method to see if the given
     #parameter matches one of the file names
     file_name_list = os.listdir('/var/lib/tftpboot/hosts.d/')
     file_name_check = file_name_list.count(file_name)
     if file_name_check == 1:
-        query = subprocess.run(["sudo", os.path.abspath(os.path.dirname(__file__)) + "/" + dhcpd_scripts_variable + "/rm_dhcp_file.sh", ""+file_name], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        query = run_script("/rm_dhcp_file.sh", file_name)
         #if there were no errors
         if query.returncode == 0:
             return jsonify({"status": 200, "message": "File was deleted"}), 200
@@ -150,6 +158,6 @@ if __name__ == "__main__":
     else:
         raise ReferenceError("Port required. Command should be, \"python3 app.py <PORT>\"")
 
-    server_name = 'builder-00.ofa.iol.unh.edu:' + str(PORT)
-    app.config['SERVER_NAME'] = server_name
+    #server_name = 'builder-00.ofa.iol.unh.edu:' + str(PORT)
+    #app.config['SERVER_NAME'] = server_name
     app.run(port=PORT)
