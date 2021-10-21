@@ -158,6 +158,6 @@ if __name__ == "__main__":
     else:
         raise ReferenceError("Port required. Command should be, \"python3 app.py <PORT>\"")
 
-    #server_name = 'builder-00.ofa.iol.unh.edu:' + str(PORT)
-    #app.config['SERVER_NAME'] = server_name
+    server_name = 'builder-00.ofa.iol.unh.edu:' + str(PORT)
+    app.config['SERVER_NAME'] = server_name
     app.run(port=PORT)
