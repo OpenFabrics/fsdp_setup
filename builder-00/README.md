@@ -36,7 +36,7 @@ This route, much like the previous, should restart the DHCP 6 service and
 either return a 200 response if it was successful or a 500 response if
 there was an error while restarting.
 
-* ### Check the status of DHCP4 and DHCP6 services
+### Check the status of DHCP4 and DHCP6 services
 
 ``http://builder-00.ofa.iol.unh.edu:8080/checkDhcpStatus`` - Method = POST
 
@@ -46,7 +46,7 @@ to find the status of both, a 206 response if it found the status of one but
 failed to find the status of the other, or a 500 response if there was an error
 and it failed to find the status of either.
 
-* ### Rebuild the DHCP config
+### Rebuild the DHCP config
 
 ``http://builder-00.ofa.iol.unh.edu:8080/rebuildDhcp`` - Method = POST
 
@@ -55,7 +55,7 @@ This route will rebuild the DHCP configuration file and it will return a
 node configuration files it needs, or a 500 status if the node files were
 found but there was an error in the rebuilding process.
 
-* ### Delete a node config file
+### Delete a node config file
 
 ``http://builder-00.ofa.iol.unh.edu:8080/hosts.d/nameOfFileToDelete`` - Method = DELETE
 
@@ -71,7 +71,7 @@ on the builder-00.ofa.iol.unh.edu.
 1. After you've done that, you'll need to create a python virtual environment
 folder called "venv" in the /opt/dhcpd_api directory and install the dependancies
 from the requirements.txt file in that environment.
-1. The API will be running under the systems user dhcp_api so if there isn't an
+1. The API will be running under the systems user dhcpapi so if there isn't an
 existing system user under that name you'll need to create one, using
 ``useradd --system --shell /sbin/nologin --home-dir /opt/dhcpd_api -M dhcpapi``.
 1. From there you need to move the "dhcp_api" file into /etc/sudoers.d/ directory
