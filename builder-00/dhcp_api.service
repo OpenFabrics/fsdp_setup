@@ -3,7 +3,7 @@ Description=Api used for managing DHCP services
 After=network-up.target
 
 [Service]
-User=dhcp_api
+User=dhcpapi
 ExecStartPre=/bin/sh -c 'source /opt/dhcpd_api/venv/bin/activate'
 ExecStart=python3 /opt/dhcpd_api/app.py 8080
 
