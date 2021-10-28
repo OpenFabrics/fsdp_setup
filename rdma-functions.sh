@@ -161,10 +161,10 @@ Create_Fixed_Addresses() {
 			__if_x_in_y $fabric $net_part || continue
 			if [ "$instance" -gt 0 ]; then
 				case $instance in
-				1) IP_addrs1=(${IP_addrs1[*]} `grep -w ${subnet}_${instance}${vlan_part}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`);;
-				2) IP_addrs1=(${IP_addrs2[*]} `grep -w ${subnet}_${instance}${vlan_part}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`);;
-				3) IP_addrs1=(${IP_addrs3[*]} `grep -w ${subnet}_${instance}${vlan_part}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`);;
-				4) IP_addrs1=(${IP_addrs4[*]} `grep -w ${subnet}_${instance}${vlan_part}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`);;
+				1) IP_addrs1=(${IP_addrs1[*]} `grep -w ${net_part}_${instance}${vlan_part}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`);;
+				2) IP_addrs2=(${IP_addrs2[*]} `grep -w ${net_part}_${instance}${vlan_part}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`);;
+				3) IP_addrs3=(${IP_addrs3[*]} `grep -w ${net_part}_${instance}${vlan_part}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`);;
+				4) IP_addrs4=(${IP_addrs4[*]} `grep -w ${net_part}_${instance}${vlan_part}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`);;
 				esac
 			else
 				IP_addrs0=(${IP_addrs0[*]} `grep -w "${subnet}-${RDMA_HOST}$" /etc/hosts | awk '{print $1}'`)
