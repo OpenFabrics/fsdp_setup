@@ -83,8 +83,8 @@ en() {
 		i=`ip -o link show $dev | awk -F ': ' '{ print $2 }'`
 		[ -n "$i" ] && _show_en_dev_state $i && break
 	done
-        for dev in roce roce\\.{1..4} \\.40 \\.43 \\.45 iw iw\\.{1..4} \\.50 \\.51 \\.52 ; do
-		i=`ip -o link show | grep -w ".*$dev:" | grep -v master | grep -v "@.*$dev" | awk -F ': ' '{ print $2 }'`
+        for dev in roce roce.43 roce.45 roce.{50..52} roce.{1..4} roce.{1..4}.43 roce.{1..4}.45 iw iw.51 iw.52 iw.{1..4} iw.{1..4}.51 iw.{1..4}.52 ; do
+		i=`ip -o link show | grep -w ".*$dev" | grep -v master | grep -v "@.*$dev" | awk -F ': ' '{ print $2 }'`
                 i=`echo $i | cut -f 1 -d '@'`
 		[ -n "$i" ] && _show_en_dev_state $i
         done
