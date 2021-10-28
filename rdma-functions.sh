@@ -749,9 +749,9 @@ BEGIN {
 				else {
 					split(net_name, net_fields, ".")
 					if (net_fields[2] != "")
-						net_name = net_fields[1] + "_" +net_part[2] + "." + net_fields[2]
+						net_name = net_fields[1]"_"net_part[2]"."net_fields[2]
 					else
-						net_name = net_fields[1] + "_" + net_part[2]
+						net_name = net_fields[1]"_"net_part[2]
 					printf("'"${network_prefix}"'.%d.%d\t\t%s-%s\n",
 						net_ip, host_ip + net_part[2],
 						net_name, $1)
