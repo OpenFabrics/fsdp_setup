@@ -1369,7 +1369,7 @@ __setup_dhcp_client_loop() {
 	k=0
 	while [ $k -lt $macs -o $k -lt $ids ]; do
 		local host_file="$RDMA_HOST.$instance.$k"
-		echo -ne "host $host_instance {\n" > $host_file
+		echo -ne "host $host_file {\n" > $host_file
 		echo -ne "\tfixed-address " >> $host_file
 		local j=0
 		for i in ${IPs[*]}; do
