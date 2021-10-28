@@ -607,7 +607,7 @@ Create_Rdma_Interfaces() {
 	local CM=""
 	local TYPE=InfiniBand
 	local HWADDR=hwaddr
-	local SUBNET=`echo $2 | cut -f 1 -d '.'`
+	local SUBNET=`echo $2 | cut -f 1 -d '_'`
 	__get_net_from_subnet $SUBNET
 	start_net=$net
 	case "$SUBNET" in
@@ -738,7 +738,7 @@ BEGIN {
 	group = host_fields[1]
 	host_ip = offset[group] + (host_fields[2] * 5)
 	for (i=2; i<=NF; i++) {
-		split($i, net_part, ".")
+		split($i, net_part, "_")
 		for (j=0; j<=254; j++) {
 			if ((net_part[1], j) in net) {
 				net_ip = j
