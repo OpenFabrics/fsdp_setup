@@ -12,13 +12,13 @@ Create_Interface lom_4 Ethernet no hwaddr d4:f5:ef:0e:86:8b
 Create_Rdma_Interfaces hfi1 opa0 80:81:00:02:fe:80:00:00:00:00:00:00:00:11:75:09:01:c7:8b:0e dhcp
 Create_Rdma_Interfaces e810 roce b4:96:91:a4:03:28 dhcp
 Create_Interface e810_off Ethernet no hwaddr b4:96:91:a4:03:29
-Create_Rdma_Interfaces x722 iw f8:f2:1e:bd:4d:be dhcp
-Create_Interface x722_off Ethernet no hwaddr f8:f2:1e:bd:4d:bf
+Create_Rdma_Interfaces x722 iw f8:f2:1e:bd:4d:bf dhcp
+Create_Interface x722_off Ethernet no hwaddr f8:f2:1e:bd:4d:be
 
 Create_Multicast_Route hfi1_opa0
 
 Create_Fixed_Addresses ${HOST_FABRICS[*]}
-HARDWARE0=(b4:96:91:a4:03:28 f8:f2:1e:bd:4d:be)
+HARDWARE0=(b4:96:91:a4:03:28 f8:f2:1e:bd:4d:bf)
 GIDS0=(00:11:75:09:01:c7:8b:0e)
 
 Setup_Nfs_Client_Mounts
