@@ -1368,8 +1368,7 @@ __setup_dhcp_client_loop() {
 	done
 	k=0
 	while [ $k -lt $macs -o $k -lt $ids ]; do
-		local host_instance="$RDMA_HOST.$instance.$k"
-		local host_file="/root/$host_instance"
+		local host_file="$RDMA_HOST.$instance.$k"
 		echo -ne "host $host_instance {\n" > $host_file
 		echo -ne "\tfixed-address " >> $host_file
 		local j=0
@@ -1392,7 +1391,8 @@ __setup_dhcp_client_loop() {
 }
 
 Setup_Dhcp_Client() {
-	rm -f /root/$RDMA_HOST.?.*
+	pushd /root
+	rm -f $RDMA_HOST.?.*
 	[ -z "${IP_addrs0[*]}" ] && return
 	__setup_dhcp_client_loop ips ${IP_addrs0[*]} macs ${HARDWARE0[*]} gids ${GIDS0[*]} instance 0
 	[ -n "${IP_addrs1[*]}" ] && __setup_dhcp_client_loop ips ${IP_addrs1[*]} macs ${HARDWARE1[*]} gids ${GIDS1[*]} instance 1
@@ -1407,6 +1407,7 @@ Setup_Dhcp_Client() {
 	done
 	curl -d "" http://builder-00.ofa.iol.unh.edu:8080/rebuildDhcp
 	curl -d "" http://builder-00.ofa.iol.unh.edu:8080/restartDhcp4Service
+	popd
 }
 
 Unlimit_Resources() {
