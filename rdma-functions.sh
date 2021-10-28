@@ -157,7 +157,7 @@ Create_Fixed_Addresses() {
 		for subnet in ${all_nets[*]}; do
 			net_part=`echo $subnet | cut -f 1 -d '.'`
 			vlan_part=`echo $subnet | cut -f 2 -s -d '.'`
-			[ -n "$vlan_part" ] vlan_part=".$vlan_part"
+			[ -n "$vlan_part" ] && vlan_part=".$vlan_part"
 			__if_x_in_y $fabric $net_part || continue
 			if [ "$instance" -gt 0 ]; then
 				case $instance in
