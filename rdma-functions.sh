@@ -145,8 +145,11 @@ Nmcli_Con_Reload() {
 }
 
 Create_Fixed_Addresses() {
-	declare -A i
-	i[0]=0; i[1]=0; i[2]=0; i[3]=0; i[4]=0
+	IP_addrs0=()
+	IP_addrs1=()
+	IP_addrs2=()
+	IP_addrs3=()
+	IP_addrs4=()
 	for fabrics in $*; do
 		fabric=`echo $fabrics | cut -f 1 -d '.'`
 		instance=`echo $fabrics | cut -f 2 -s -d '.'`
@@ -156,17 +159,21 @@ Create_Fixed_Addresses() {
 			__if_x_in_y $fabric $net_part || continue
 			if [ "$instance" -gt 0 ]; then
 				case $instance in
-				1) IP_addrs1[${i[$instance]}]=`grep -w ${subnet}-${host_part}.${instance} /etc/hosts | awk '{print $1}'`;;
-				2) IP_addrs2[${i[$instance]}]=`grep -w ${subnet}-${host_part}.${instance} /etc/hosts | awk '{print $1}'`;;
-				3) IP_addrs3[${i[$instance]}]=`grep -w ${subnet}-${host_part}.${instance} /etc/hosts | awk '{print $1}'`;;
-				4) IP_addrs4[${i[$instance]}]=`grep -w ${subnet}-${host_part}.${instance} /etc/hosts | awk '{print $1}'`;;
+				1) IP_addrs1=(${IP_addrs1[*]} `grep -w ${subnet}-${RDMA_HOST}.${instance} /etc/hosts | awk '{print $1}'`);;
+				2) IP_addrs2=(${IP_addrs2[*]} `grep -w ${subnet}-${RDMA_HOST}.${instance} /etc/hosts | awk '{print $1}'`);;
+				3) IP_addrs3=(${IP_addrs3[*]} `grep -w ${subnet}-${RDMA_HOST}.${instance} /etc/hosts | awk '{print $1}'`);;
+				4) IP_addrs4=(${IP_addrs4[*]} `grep -w ${subnet}-${RDMA_HOST}.${instance} /etc/hosts | awk '{print $1}'`);;
 				esac
 			else
-				IP_addrs0[i[0]]=`grep -w ${subnet}-${host_part} /etc/hosts | awk '{print $1}'`
+				IP_addrs0=(${IP_addrs0[*]} `grep -w "${subnet}-${RDMA_HOST}$" /etc/hosts | awk '{print $1}'`)
 			fi
-			let i[$instance]++
 		done
 	done
+	echo "IP_addrs0= ${IP_addrs0[*]}"
+	echo "IP_addrs1= ${IP_addrs1[*]}"
+        echo "IP_addrs2= ${IP_addrs2[*]}"
+        echo "IP_addrs3= ${IP_addrs3[*]}"
+        echo "IP_addrs4= ${IP_addrs4[*]}"
 }
 
 Create_Interface() {
@@ -306,13 +313,13 @@ echo "		interfaces.  Defaults to no."
 	# but not on Fedora 16 or earlier
 	if [ "$OS" = "rhel" -a "$RELEASE" -lt 6 -a "$bootproto" = "dhcp" -a "$defroute" = "no" ]; then
 		fabric=`echo "$devname" | cut -f 2- -d '_' | sed -e 's/800//'`
-		ipaddr=`grep ${fabric}-${host_part} /etc/hosts | awk '{print $1}'`
+		ipaddr=`grep ${fabric}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`
 		[ -n "$ipaddr" ] && bootproto=static
 	fi
 	if [ "$iftype" = InfiniBand -a "$bootproto" = dhcp ]; then
 		if [ $OS = fedora -a $RELEASE -lt 17 ] || [ $OS = rhel -a $RELEASE -lt 6 ]; then
 			fabric=`echo "$devname" | cut -f 2- -d '_' | sed -e 's/800//'`
-			ipaddr=`grep ${fabric}-${host_part} /etc/hosts | awk '{print $1}'`
+			ipaddr=`grep ${fabric}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`
 			[ -n "$ipaddr" ] && bootproto=static
 		fi
 	fi
@@ -1041,7 +1048,7 @@ Setup_Client_Mounts <server> <protocol> <fstype> [backstore <backstore>]
 \tfstype - xfs or ext4 are currently supported
 \tbackstore - name of backing device on server, will be prefixed with
 \t  either iser- or srp- depending on protocol, if none is given,
-\t  will use the default of <protocol>-$host_part
+\t  will use the default of <protocol>-$RDMA_HOST
 \tfabrics - a list of fabrics to use, if none are give, all available
 \t  are used instead"
 }
@@ -1058,7 +1065,7 @@ Setup_Client_Mounts()
 	local protocol=$2
 	local fstype=$3
 	shift 3
-	local backstore=$host_part
+	local backstore=$RDMA_HOST
 	case $1 in
 	backstore)
 		backstore=$2
@@ -1302,8 +1309,8 @@ __setup_dhcp_client_loop() {
 	local ids=0
 	local k=0
 	local i
-	local IP_addrs
-	local HWADDRs
+	local IPs
+	local HWs
 	local GUIDs
 
 	while [ -n "$1" ]; do
@@ -1311,30 +1318,31 @@ __setup_dhcp_client_loop() {
 		ips)
 			i=0
 			k=0
+			IPs=()
 			shift 1;;
 		macs)
 			i=0
 			k=1
+			HWs=()
 			shift 1;;
 		gids)
 			i=0
 			k=2
+			GUIDs=()
 			shift 1;;
 		instance)
-			i=0
-			k=0
 			instance=$2
 			shift 2;;
 		*)
 			case $k in
 			0)
-				IP_addrs=($IP_addrs[*] $1)
+				IPs=(${IPs[*]} $1)
 				shift;;
 			1)
-				HWADDRs=($HWADDRs[*] $1)
+				HWs=(${HWs[*]} $1)
 				shift;;
 			2)
-				GUIDs=($GUIDs[*] $1)
+				GUIDs=(${GUIDs[*]} $1)
 				shift;;
 			*)
 				echo "Unknown option to __setup_dhcp_client_loop"
@@ -1344,32 +1352,35 @@ __setup_dhcp_client_loop() {
 		esac
 	done
 
-	for mac in $HWADDRs[*]; do
+	for mac in ${HWs[*]}; do
 		let eths++
 		let macs++
 	done
-	for gid in $GUIDs[*]; do
+	for gid in ${GUIDs[*]}; do
 		let gids++
 		let macs++
 	done
-	Create_Client_Ids $GUIDs[*]
+
+	[ -n "${GUIDs[*]}" ] && Create_Client_Ids ${GUIDs[*]}
+
 	for id in ${ID[*]}; do
 		let ids++
 	done
+	k=0
 	while [ $k -lt $macs -o $k -lt $ids ]; do
 		local host_instance="$RDMA_HOST.$instance.$k"
-		local host_file="~/$host_instance"
+		local host_file="/root/$host_instance"
 		echo -ne "host $host_instance {\n" > $host_file
 		echo -ne "\tfixed-address " >> $host_file
 		local j=0
-		for i in ${IP_addrs[*]}; do
+		for i in ${IPs[*]}; do
 			[ $j -gt 0 ] && echo -ne "," >> $host_file
 			echo -ne "$i" >> $host_file
 			let j++
 		done
 		echo -ne ";\n" >> $host_file
 		if [ $k -lt $eths ]; then
-			echo -ne "\thardware ethernet ${HWADDRs[$k]};\n" >> $host_file
+			echo -ne "\thardware ethernet ${HWs[$k]};\n" >> $host_file
 		elif [ $(($k - $eths)) -lt $gids ]; then
 			echo -ne "\thardware infiniband ${GUIDs[$(($k - $eths))]};\n" >> $host_file
 		fi
@@ -1381,13 +1392,13 @@ __setup_dhcp_client_loop() {
 }
 
 Setup_Dhcp_Client() {
-	rm -f ~/$RDMA_HOST.dhcp.?.?
-	[ -z "$IP_addrs0[*]" ] && return
-	__setup_dhcp_client_loop ips $IP_addrs0[*] macs $HARDWARE0[*] gids $GIDS0[*] instance 0
-	[ -n "$IP_addrs1[*]" ] && __setup_dhcp_client_loop ips $IP_addrs1[*] macs $HARDWARE1[*] gids $GIDS1[*] instance 1
-	[ -n "$IP_addrs2[*]" ] && __setup_dhcp_client_loop ips $IP_addrs2[*] macs $HARDWARE2[*] gids $GIDS2[*] instance 2
-	[ -n "$IP_addrs3[*]" ] && __setup_dhcp_client_loop ips $IP_addrs3[*] macs $HARDWARE3[*] gids $GIDS3[*] instance 3
-	[ -n "$IP_addrs4[*]" ] && __setup_dhcp_client_loop ips $IP_addrs4[*] macs $HARDWARE4[*] gids $GIDS4[*] instance 4
+	rm -f /root/$RDMA_HOST.?.*
+	[ -z "${IP_addrs0[*]}" ] && return
+	__setup_dhcp_client_loop ips ${IP_addrs0[*]} macs ${HARDWARE0[*]} gids ${GIDS0[*]} instance 0
+	[ -n "${IP_addrs1[*]}" ] && __setup_dhcp_client_loop ips ${IP_addrs1[*]} macs ${HARDWARE1[*]} gids ${GIDS1[*]} instance 1
+	[ -n "${IP_addrs2[*]}" ] && __setup_dhcp_client_loop ips ${IP_addrs2[*]} macs ${HARDWARE2[*]} gids ${GIDS2[*]} instance 2
+	[ -n "${IP_addrs3[*]}" ] && __setup_dhcp_client_loop ips ${IP_addrs3[*]} macs ${HARDWARE3[*]} gids ${GIDS3[*]} instance 3
+	[ -n "${IP_addrs4[*]}" ] && __setup_dhcp_client_loop ips ${IP_addrs4[*]} macs ${HARDWARE4[*]} gids ${GIDS4[*]} instance 4
 }
 
 Unlimit_Resources() {
@@ -1443,5 +1454,4 @@ Enable_Fips_Mode() {
 	[ -f /boot/grub/grub.conf ] && sed -e '/.*fips=1.*/n; s#.*kernel /vmlinuz-.*#& '"${BOOT}"'#' -i /boot/grub/grub.conf
 	[ -f /etc/default/grub ] && (. /etc/default/grub; sed -e '/.*fips=1.*/n; s#GRUB_CMDLINE_LINUX=".*"#GRUB_CMDLINE_LINUX="'"$GRUB_CMDLINE_LINUX ${BOOT}"'"#' -i /etc/default/grub) && grub2-mkconfig -o /boot/grub2/grub.cfg
 	dracut -f -v
-
 }

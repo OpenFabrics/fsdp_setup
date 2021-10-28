@@ -18,7 +18,7 @@ Create_Interface cxgb4_off Ethernet no hwaddr 00:07:43:5b:ec:a8
 Create_Multicast_Route hfi1_opa0
 
 Create_Fixed_Addresses ${HOST_FABRICS[*]}
-HARDWARE=(00:07:43:5b:ec:a0 b8:ce:f6:09:66:fb)
-GIDS=(b8:ce:f6:03:00:09:66:fa 00:11:75:09:01:c7:88:87)
+HARDWARE0=(00:07:43:5b:ec:a0 b8:ce:f6:09:66:fb)
+GIDS0=(b8:ce:f6:03:00:09:66:fa 00:11:75:09:01:c7:88:87)
 
 Setup_Nfs_Client_Mounts

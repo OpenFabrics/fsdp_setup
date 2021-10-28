@@ -17,7 +17,7 @@ Create_Interface x722_off Ethernet no hwaddr f8:f2:1e:bd:4d:d5
 Create_Multicast_Route hfi1_opa0
 
 Create_Fixed_Addresses ${HOST_FABRICS[*]}
-HARDWARE=(b4:96:91:a4:05:c0 f8:f2:1e:bd:4d:d4)
-GIDS=(00:11:75:09:01:c7:8a:f4)
+HARDWARE0=(b4:96:91:a4:05:c0 f8:f2:1e:bd:4d:d4)
+GIDS0=(00:11:75:09:01:c7:8a:f4)
 
 Setup_Nfs_Client_Mounts

@@ -53,19 +53,19 @@ _show_ib_dev_state() {
 }
 
 _ib_dev() {
-	for i in `ip -o link show | grep -w ".*_$1" | grep -v "@.*_$1" | awk -F ': ' '{ print $2 }' | cut -f 1 -d '@'`; do
+	for i in `ip -o link show | grep -w ".*_$1:" | grep -v "$1@" | awk -F ': ' '{ print $2 }' | cut -f 1 -d '@'`; do
                 [ -n "$i" ] && _show_ib_dev_state $i
         done
 }
 
 ib() {
-	for dev in ib0 ib1 ib0.8002 ib1.8003 ib0.8004 ib1.8005 ib0.8006 ib1.8007 ib0.8008 ib1.8009 ib0.8010 ib1.8011 ib0.8012 ib1.8013 ib0.8014 ib0.8016; do
+	for dev in ib0 ib0.1 ib0.2 ib0.3 ib0.4 ib0.8002 ib0.8004 ib0.8006 ib0.{1..4}.800{2,4,6}; do
 		_ib_dev $dev
         done
 }
 
 opa() {
-	for dev in opa0 opa1 opa0.8022 opa1.8023 opa0.8024 opa1.8025; do
+	for dev in opa0 opa0.8022; do
 		_ib_dev $dev
         done
 }
@@ -83,8 +83,8 @@ en() {
 		i=`ip -o link show $dev | awk -F ': ' '{ print $2 }'`
 		[ -n "$i" ] && _show_en_dev_state $i && break
 	done
-        for dev in roce \\.40 \\.43 \\.45 iw \\.50 \\.51 \\.52 ; do
-		i=`ip -o link show | grep -w ".*$dev" | grep -v master | grep -v "@.*$dev" | awk -F ': ' '{ print $2 }'`
+        for dev in roce roce\\.{1..4} \\.40 \\.43 \\.45 iw iw\\.{1..4} \\.50 \\.51 \\.52 ; do
+		i=`ip -o link show | grep -w ".*$dev:" | grep -v master | grep -v "@.*$dev" | awk -F ': ' '{ print $2 }'`
                 i=`echo $i | cut -f 1 -d '@'`
 		[ -n "$i" ] && _show_en_dev_state $i
         done
