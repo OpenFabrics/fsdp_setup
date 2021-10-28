@@ -1399,6 +1399,14 @@ Setup_Dhcp_Client() {
 	[ -n "${IP_addrs2[*]}" ] && __setup_dhcp_client_loop ips ${IP_addrs2[*]} macs ${HARDWARE2[*]} gids ${GIDS2[*]} instance 2
 	[ -n "${IP_addrs3[*]}" ] && __setup_dhcp_client_loop ips ${IP_addrs3[*]} macs ${HARDWARE3[*]} gids ${GIDS3[*]} instance 3
 	[ -n "${IP_addrs4[*]}" ] && __setup_dhcp_client_loop ips ${IP_addrs4[*]} macs ${HARDWARE4[*]} gids ${GIDS4[*]} instance 4
+	for i in `curl http://builder-00.ofa.iol.unh.edu:8080/hosts.d | json_reformat | grep $RDMA_HOST | tr -d '",'`; do
+		curl -X DELETE http://builder-00.ofa.iol.unh.edu:8080/hosts.d/$i
+	done
+	for i in $RDMA_HOST.?.*; do
+		tftp -m ascii builder-00.ofa.iol.unh.edu -c put $i hosts.d/$i
+	done
+	curl -d "" http://builder-00.ofa.iol.unh.edu:8080/rebuildDhcp
+	curl -d "" http://builder-00.ofa.iol.unh.edu:8080/restartDhcp4Service
 }
 
 Unlimit_Resources() {
