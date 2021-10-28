@@ -1,0 +1,3 @@
+Cmnd_Alias API_PERMISSIONS = /opt/dhcpd_api/dhcpd_scripts/rebuild_dhcp.sh, /opt/dhcpd_api/dhcpd_scripts/reset_dhcpd_config.sh, /opt/dhcpd_api/dhcpd_scripts/restart_dhcp.sh, /opt/dhcpd_api/dhcpd_scripts/restart_dhcp6.sh, /opt/dhcpd_api/dhcpd_scripts/rm_dhcp_file.sh, /opt/dhcpd_api/dhcpd_scripts/status_dhcp4.sh, /opt/dhcpd_api/dhcpd_scripts/status_dhcp6.sh
+
+dhcpapi ALL=(ALL) NOPASSWD: API_PERMISSIONS

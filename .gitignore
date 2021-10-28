@@ -1,0 +1,4 @@
+# Ignore python specific environments
+venv/
+*.env
+__pycache__/
