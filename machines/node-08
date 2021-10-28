@@ -1,6 +1,6 @@
 #!/bin/bash
 RDMA_HOST=node-08
-HOST_FABRICS=(ib0 roce roce.1 roce.2)
+HOST_FABRICS=(ib0 roce roce_1 roce_2)
 
 Clear_Default_Interfaces
 
@@ -11,8 +11,8 @@ Create_Interface lom_4 Ethernet no hwaddr 48:df:37:ca:fb:63
 
 Create_Rdma_Interfaces mlx5 ib0 00:00:05:4e:fe:80:00:00:00:00:00:00:b8:ce:f6:03:00:2d:15:ce dhcp
 Create_Rdma_Interfaces mlx5 roce b8:ce:f6:2d:15:cf dhcp
-Create_Rdma_Interfaces mlx5 roce.1 b8:ce:f6:44:ea:dc dhcp
-Create_Rdma_Interfaces bnxt roce.2 bc:97:e1:70:3d:20 dhcp
+Create_Rdma_Interfaces mlx5 roce_1 b8:ce:f6:44:ea:dc dhcp
+Create_Rdma_Interfaces bnxt roce_2 bc:97:e1:70:3d:20 dhcp
 Create_Interface bnxt_off Ethernet no hwaddr bc:97:e1:70:3d:21
 
 Create_Multicast_Route mlx5_ib0
