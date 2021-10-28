@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 #
 RDMA_HOST=node-04
 HOST_FABRICS=(opa0 ib0 roce iw)
@@ -18,7 +18,7 @@ Create_Interface cxgb4_off Ethernet no hwaddr 00:07:43:5b:ed:78
 Create_Multicast_Route hfi1_opa0
 
 Create_Fixed_Addresses ${HOST_FABRICS[*]}
-HARDWARE=(b8:ce:f6:09:66:db 00:07:43:5b:ed:70)
-GIDS=(00:11:75:09:01:c7:8a:b0 b8:ce:f6:03:00:09:66:da)
+HARDWARE0=(b8:ce:f6:09:66:db 00:07:43:5b:ed:70)
+GIDS0=(00:11:75:09:01:c7:8a:b0 b8:ce:f6:03:00:09:66:da)
 
 Setup_Nfs_Client_Mounts
