@@ -151,18 +151,20 @@ Create_Fixed_Addresses() {
 	IP_addrs3=()
 	IP_addrs4=()
 	for fabrics in $*; do
-		fabric=`echo $fabrics | cut -f 1 -d '.'`
-		instance=`echo $fabrics | cut -f 2 -s -d '.'`
+		fabric=`echo $fabrics | cut -f 1 -d '_'`
+		instance=`echo $fabrics | cut -f 2 -s -d '_'`
 		[ -z "$instance" ] && instance=0
 		for subnet in ${all_nets[*]}; do
 			net_part=`echo $subnet | cut -f 1 -d '.'`
+			vlan_part=`echo $subnet | cut -f 2 -s -d '.'`
+			[ -n "$vlan_part" ] vlan_part=".$vlan_part"
 			__if_x_in_y $fabric $net_part || continue
 			if [ "$instance" -gt 0 ]; then
 				case $instance in
-				1) IP_addrs1=(${IP_addrs1[*]} `grep -w ${subnet}-${RDMA_HOST}.${instance} /etc/hosts | awk '{print $1}'`);;
-				2) IP_addrs2=(${IP_addrs2[*]} `grep -w ${subnet}-${RDMA_HOST}.${instance} /etc/hosts | awk '{print $1}'`);;
-				3) IP_addrs3=(${IP_addrs3[*]} `grep -w ${subnet}-${RDMA_HOST}.${instance} /etc/hosts | awk '{print $1}'`);;
-				4) IP_addrs4=(${IP_addrs4[*]} `grep -w ${subnet}-${RDMA_HOST}.${instance} /etc/hosts | awk '{print $1}'`);;
+				1) IP_addrs1=(${IP_addrs1[*]} `grep -w ${subnet}_${instance}${vlan_part}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`);;
+				2) IP_addrs1=(${IP_addrs2[*]} `grep -w ${subnet}_${instance}${vlan_part}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`);;
+				3) IP_addrs1=(${IP_addrs3[*]} `grep -w ${subnet}_${instance}${vlan_part}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`);;
+				4) IP_addrs1=(${IP_addrs4[*]} `grep -w ${subnet}_${instance}${vlan_part}-${RDMA_HOST} /etc/hosts | awk '{print $1}'`);;
 				esac
 			else
 				IP_addrs0=(${IP_addrs0[*]} `grep -w "${subnet}-${RDMA_HOST}$" /etc/hosts | awk '{print $1}'`)
@@ -749,9 +751,9 @@ BEGIN {
 				else {
 					split(net_name, net_fields, ".")
 					if (net_fields[2] != "")
-						net_name = net_fields[1] + "_" +net_part[2] + "." + net_fields[2]
+						net_name = net_fields[1]"_"net_part[2]"."net_fields[2]
 					else
-						net_name = net_fields[1] + "_" + net_part[2]
+						net_name = net_fields[1]"_"net_part[2]
 					printf("'"${network_prefix}"'.%d.%d\t\t%s-%s\n",
 						net_ip, host_ip + net_part[2],
 						net_name, $1)
