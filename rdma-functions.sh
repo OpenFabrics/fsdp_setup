@@ -42,7 +42,7 @@ ib0_nets=(${ib0_2k_nets[*]} ${ib0_4k_nets[*]})
 #ib1_nets=(${ib1_2k_nets[*]} ${ib1_4k_nets[*]})
 
 # OmniPath Fabric 1
-opa0_nets=(opa0 opa0.22)
+opa0_nets=(opa0 opa0.20 opa0.22)
 
 # OmniPath Fabric 2
 #opa1_nets=(opa1 opa1.23 opa1.25)
