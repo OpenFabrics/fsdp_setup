@@ -53,20 +53,21 @@ _show_ib_dev_state() {
 }
 
 _ib_dev() {
-	for i in `ip -o link show | grep -w ".*_$1:" | grep -v "$1@" | awk -F ': ' '{ print $2 }' | cut -f 1 -d '@'`; do
-                [ -n "$i" ] && _show_ib_dev_state $i
-        done
+	i=`ip -o link show $1 2>/dev/null | awk -F ': ' '{ print $2 }' | cut -f 1 -d '@'`
+        [ -n "$i" ] && _show_ib_dev_state $i
 }
 
 ib() {
+	local prefix=`ip -o link show | grep -v "\@.*ib0:" | grep -w ".*_ib0:" | awk -F ': ' '{ print $2 }' | cut -f 1 -d '_'`
 	for dev in ib0 ib0.800{2,4,6} ib0_1 ib0_1.800{2,4,6} ib0_2 ib0_2.800{2,4,6} ib0_3 ib0_3.800{2,4,6} ib0_4 ib0_4.800{2,4,6}; do
-		_ib_dev $dev
+		_ib_dev ${prefix}_${dev}
         done
 }
 
 opa() {
-	for dev in opa0 opa0.8022; do
-		_ib_dev $dev
+	local prefix=`ip -o link show | grep -v "\@.*opa0:" | grep -w ".*_opa0:" | awk -F ': ' '{ print $2 }' | cut -f 1 -d '_'`
+	for dev in opa0 opa0.8022 opa0.8024; do
+		_ib_dev ${prefix}_${dev}
         done
 }
 
@@ -79,18 +80,55 @@ _show_en_dev_state() {
 }
 
 en() {
+	local prefix
 	for dev in lab-bridge0 lom_1; do
-		i=`ip -o link show $dev | awk -F ': ' '{ print $2 }'`
+		i=`ip -o link show $dev 2>/dev/null | awk -F ': ' '{ print $2 }'`
 		[ -n "$i" ] && _show_en_dev_state $i && break
 	done
-        for dev in roce roce.43 roce.45 roce.{50..52} roce_1 roce_1.4{3,5} roce_2 roce_2.4{3,5} roce_3 roce_3.4{3,5} roce_4 roce_4.4{3,5} iw iw.51 iw.52 ; do
-		i=`ip -o link show | grep -w ".*$dev" | grep -v master | grep -v "@.*$dev" | awk -F ': ' '{ print $2 }'`
-                i=`echo $i | cut -f 1 -d '@'`
-		[ -n "$i" ] && _show_en_dev_state $i
-        done
+	prefix=`ip -o link show | grep -v "\@.*roce:" | grep -w ".*_roce:" | awk -F ': ' '{ print $2 }' | cut -f 1 -d '_'`
+	if [ -n "$prefix" ]; then
+	        for dev in roce roce.4{3,5} roce.{50..52}; do
+			i=`ip -o link show ${prefix}_${dev} 2>/dev/null | awk -F ': ' '{ print $2 }' | cut -f 1 -d '@'`
+			[ -n "$i" ] && _show_en_dev_state $i
+		done
+	fi
+	prefix=`ip -o link show | grep -v "\@.*roce_1:" | grep -w ".*_roce_1:" | awk -F ': ' '{ print $2 }' | cut -f 1 -d '_'`
+	if [ -n "$prefix" ]; then
+		for dev in roce_1 roce_1.4{3,5}; do
+			i=`ip -o link show ${prefix}_${dev} 2>/dev/null | awk -F ': ' '{ print $2 }' | cut -f 1 -d '@'`
+			[ -n "$i" ] && _show_en_dev_state $i
+		done
+	fi
+	prefix=`ip -o link show | grep -v "\@.*roce_2:" | grep -w ".*_roce_2:" | awk -F ': ' '{ print $2 }' | cut -f 1 -d '_'`
+	if [ -n "$prefix" ]; then
+		for dev in roce_2 roce_2.4{3,5}; do
+			i=`ip -o link show ${prefix}_${dev} 2>/dev/null | awk -F ': ' '{ print $2 }' | cut -f 1 -d '@'`
+			[ -n "$i" ] && _show_en_dev_state $i
+		done
+	fi
+	prefix=`ip -o link show | grep -v "\@.*roce_3:" | grep -w ".*_roce_3:" | awk -F ': ' '{ print $2 }' | cut -f 1 -d '_'`
+	if [ -n "$prefix" ]; then
+		for dev in roce_3 roce_3.4{3,5}; do
+			i=`ip -o link show ${prefix}_${dev} 2>/dev/null | awk -F ': ' '{ print $2 }' | cut -f 1 -d '@'`
+			[ -n "$i" ] && _show_en_dev_state $i
+		done
+	fi
+	prefix=`ip -o link show | grep -v "\@.*roce_4:" | grep -w ".*_roce_4:" | awk -F ': ' '{ print $2 }' | cut -f 1 -d '_'`
+	if [ -n "$prefix" ]; then
+		for dev in roce_4 roce_4.4{3,5}; do
+			i=`ip -o link show ${prefix}_${dev} 2>/dev/null | awk -F ': ' '{ print $2 }' | cut -f 1 -d '@'`
+			[ -n "$i" ] && _show_en_dev_state $i
+		done
+	fi
+	prefix=`ip -o link show | grep -v "\@.*iw:" | grep -w ".*_iw:" | awk -F ': ' '{ print $2 }' | cut -f 1 -d '_'`
+	if [ -n "$prefix" ]; then
+		for dev in iw iw.5{1,2}; do
+			i=`ip -o link show ${prefix}_${dev} 2>/dev/null | awk -F ': ' '{ print $2 }' | cut -f 1 -d '@'`
+			[ -n "$i" ] && _show_en_dev_state $i
+		done
+	fi
 	for dev in slave1 slave2 slave3 slave4; do
-		i=`ip -o link show | grep -w ".*$dev" | grep -v "@.*$dev" | awk -F ': ' '{ print $2 }'`
-                i=`echo $i | cut -f 1 -d '@'`
+		i=`ip -o link show | grep -w ".*$dev" | grep -v "@.*$dev" | awk -F ': ' '{ print $2 }' | cut -f 1 -d '@'`
 		[ -n "$i" ] && _show_en_dev_state $i
         done
 }
