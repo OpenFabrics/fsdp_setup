@@ -32,8 +32,8 @@ lab_networks="10.12.0.0/16"
 # defined as needed.  Note, all fabric IPv4 networks are assumed to be /24 size.
 
 # Infiniband Fabric 1
-ib0_2k_nets=(ib0 ib0.2 ib0.4 ib0.6)
-#ib0_4k_nets=(ib0.10 ib0.12 ib0.14 ib0.16)
+ib0_2k_nets=(ib0 ib0.2)
+ib0_4k_nets=(ib0.4 ib0.6)
 ib0_nets=(${ib0_2k_nets[*]} ${ib0_4k_nets[*]})
 
 # InfiniBand Fabric 2
@@ -618,8 +618,8 @@ Create_Rdma_Interfaces() {
 		# so there won't be any connected mode machines
 		#[ "$1" != "mlx5" ] && CM="connected_mode yes"
 		nets=(${ib0_2k_nets[*]} ${ib0_4k_nets[*]})
-		#__get_net_from_subnet ${ib0_4k_nets[0]}
-		#_4k_start=$net
+		__get_net_from_subnet ${ib0_4k_nets[0]}
+		_4k_start=$net
 		;;
 	ib1)
 		nets=(${ib1_2k_nets[*]} ${ib1_4k_nets[*]})
@@ -680,8 +680,8 @@ Create_Rdma_Interfaces() {
 		fi
 		if [ "$TYPE" = "InfiniBand" ]; then
 			if [ -z "$CM" ]; then
-				#[ $net -lt $_4k_start ] && MTU="mtu 2044" || MTU="mtu 4092"
-				MTU="mtu 2044"
+				[ $net -lt $_4k_start ] && MTU="mtu 2044" || MTU="mtu 4092"
+				#MTU="mtu 2044"
 			else
 				MTU="mtu 65520"
 			fi
