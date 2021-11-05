@@ -2,12 +2,12 @@
 RDMA_HOST=builder-00
 HOST_FABRICS=(ib0 opa0 iw roce)
 
-Clear_Default_Interfaces
+Clear_Rdma_Interfaces
 
-Create_Interface lom_1 Ethernet yes hwaddr d4:f5:ef:01:e1:b0 dhcp defroute
-Create_Interface lom_2 Ethernet no hwaddr d4:f5:ef:01:e1:b1
-Create_Interface lom_3 Ethernet no hwaddr d4:f5:ef:01:e1:b2
-Create_Interface lom_4 Ethernet no hwaddr d4:f5:ef:01:e1:b3
+#Create_Interface lom_1 Ethernet yes hwaddr d4:f5:ef:01:e1:b0 dhcp defroute
+#Create_Interface lom_2 Ethernet no hwaddr d4:f5:ef:01:e1:b1
+#Create_Interface lom_3 Ethernet no hwaddr d4:f5:ef:01:e1:b2
+#Create_Interface lom_4 Ethernet no hwaddr d4:f5:ef:01:e1:b3
 
 Create_Rdma_Interfaces mlx5 ib0 00:00:02:75:fe:80:00:00:00:00:00:00:b8:ce:f6:03:00:2d:0d:2f 252
 Create_Rdma_Interfaces hfi1 opa0 80:81:00:02:fe:80:00:00:00:00:00:01:00:11:75:09:01:c7:88:70 252
