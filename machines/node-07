@@ -1,6 +1,6 @@
 #!/bin/bash
 RDMA_HOST=node-07
-HOST_FABRICS=(ib0 roce roce_1 roce_2)
+HOST_FABRICS=(roce roce_1)
 
 Clear_Default_Interfaces
 
@@ -9,17 +9,13 @@ Create_Interface lom_2 Ethernet no hwaddr d4:f5:ef:0e:8e:11
 Create_Interface lom_3 Ethernet no hwaddr d4:f5:ef:0e:8e:12
 Create_Interface lom_4 Ethernet no hwaddr d4:f5:ef:0e:8e:13
 
-Create_Rdma_Interfaces mlx5 ib0 00:00:04:dc:fe:80:00:00:00:00:00:00:b8:ce:f6:03:00:2d:0e:1e dhcp
-Create_Rdma_Interfaces mlx5 roce b8:ce:f6:2d:0e:1f dhcp
-Create_Rdma_Interfaces mlx5 roce_1 b8:ce:f6:44:ea:de dhcp
-Create_Rdma_Interfaces bnxt roce_2 bc:97:e1:70:2c:80 dhcp
+Create_Rdma_Interfaces mlx5 roce b8:ce:f6:44:ea:de dhcp
+Create_Rdma_Interfaces bnxt roce_1 bc:97:e1:70:2c:80 dhcp
 
-Create_Multicast_Route mlx5_ib0
+Create_Multicast_Route mlx5_roce
 
 Create_Fixed_Addresses ${HOST_FABRICS[*]}
-HARDWARE0=(b8:ce:f6:2d:0e:1f)
-HARDWARE1=(b8:ce:f6:44:ea:de)
-HARDWARE2=(bc:97:e1:70:2c:80)
-GIDS0=(b8:ce:f6:03:00:2d:0e:1e)
+HARDWARE0=(b8:ce:f6:44:ea:de)
+HARDWARE1=(bc:97:e1:70:2c:80)
 
 Setup_Nfs_Client_Mounts
