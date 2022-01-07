@@ -3,8 +3,8 @@ node-02 opa0 iw roce
 node-03 ib0 opa0 iw roce
 node-04 opa0 ib0 roce iw
 node-05 ib0 roce roce_1 iw
-node-06 roce iw
+node-06 ib0 roce roce_1 iw
 node-07 roce roce_1
-node-08 ib0 roce roce_1 roce_2
+node-08 roce roce_1
 node-09 ib0 ib0_1 iw roce roce_1 roce_2
 node-10 ib0 ib0_1 iw roce roce_1 roce_2
