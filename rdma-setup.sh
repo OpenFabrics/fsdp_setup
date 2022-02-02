@@ -27,6 +27,7 @@ case $ARCH in
 		ARCH_FAMILY=aarch64
 		;;
 esac
+rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-$OS-$RELEASE-$ARCH
 
 # If the OS uses dnf, set the package $INSTALL command to use dnf;
 # otherwise continue to use yum

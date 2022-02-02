@@ -728,6 +728,7 @@ BEGIN {
 	net["ib0", 6]="ib0.6"
 	net["opa0", 20]="opa0"
 	net["opa0", 22]="opa0.22"
+	net["opa0", 24]="opa0.24"
 	net["roce", 40]="roce"
 	net["roce", 43]="roce.43"
 	net["roce", 45]="roce.45"
