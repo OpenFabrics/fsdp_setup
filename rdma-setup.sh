@@ -99,6 +99,9 @@ source ~/fsdp_setup/rdma-functions.sh"
 	Setup_Dhcp_Client
 fi
 
+# Create a ssh key and put the pub key in tftpboot
+Setup_Ssh
+
 # Do this last as we might need host specific information
 Fix_Boot_Loader
 
