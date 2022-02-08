@@ -1473,3 +1473,11 @@ Enable_Fips_Mode() {
 	[ -f /etc/default/grub ] && (. /etc/default/grub; sed -e '/.*fips=1.*/n; s#GRUB_CMDLINE_LINUX=".*"#GRUB_CMDLINE_LINUX="'"$GRUB_CMDLINE_LINUX ${BOOT}"'"#' -i /etc/default/grub) && grub2-mkconfig -o /boot/grub2/grub.cfg
 	dracut -f -v
 }
+
+Setup_Ssh() {
+	pushd /root/.ssh
+	ssh-keygen -q -f root -N "" -t ed25519
+	cp root.pub /var/lib/tftpboot
+	popd
+	Enable_Service(tftp.socket)
+}
