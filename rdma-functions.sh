@@ -1478,7 +1478,7 @@ Setup_Ssh() {
 	pushd /root/.ssh
 	[ ! -f config ] && echo "Host *node-*
 	User root
-	IdentityFile root" > config
+	IdentityFile ~/.ssh/root" > config
 	[ ! -f root ] && ssh-keygen -q -f root -N "" -t ed25519
 	cp root.pub /var/lib/tftpboot/$RDMA_HOST.pub
 	popd
