@@ -1476,8 +1476,9 @@ Enable_Fips_Mode() {
 
 Setup_Ssh() {
 	pushd /root/.ssh
-	ssh-keygen -q -f root -N "" -t ed25519
+	[ ! -f root ] && ssh-keygen -q -f root -N "" -t ed25519
 	cp root.pub /var/lib/tftpboot
 	popd
-	Enable_Service(tftp.socket)
+	Enable_Service tftp.socket
+	Start_Service tftp.socket
 }
