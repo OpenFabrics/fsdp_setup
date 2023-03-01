@@ -628,11 +628,11 @@ Create_Rdma_Interfaces() {
 		;;
 	opa0)
 		nets=(${opa0_nets[*]})
-		CM="connected_mode yes"
+		MTU="mtu 10236"
 		;;
 	opa1)
 		nets=(${opa1_nets[*]})
-		CM="connected_mode yes"
+		MTU="mtu 10236"
 		;;
 	roce)
 		TYPE=Ethernet
@@ -679,10 +679,10 @@ Create_Rdma_Interfaces() {
 			BP="static ${network_prefix}.$net.$4"
 		fi
 		if [ "$TYPE" = "InfiniBand" ]; then
-			if [ -z "$CM" ]; then
+			if [ -z "$CM" -a -z "$MTU" ]; then
 				[ $net -lt $_4k_start ] && MTU="mtu 2044" || MTU="mtu 4092"
 				#MTU="mtu 2044"
-			else
+			elif [ -z "$MTU" ]; then
 				MTU="mtu 65520"
 			fi
 		fi
