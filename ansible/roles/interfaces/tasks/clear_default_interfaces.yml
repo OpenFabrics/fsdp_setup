@@ -1,0 +1,7 @@
+---
+- name: Remove all default network interfaces
+  community.general.nmcli:
+    conn_name: "{{ item }}"
+    state: absent
+  with_items: "{{ ansible_interfaces | reject('search', 'lo') }}"
+...

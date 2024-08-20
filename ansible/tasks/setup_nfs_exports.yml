@@ -1,0 +1,28 @@
+---
+# Parameters: exports: list[str]
+- name: Create export directory
+  ansible.builtin.file:
+    path: "/srv/NFSoRDMA/{{ item }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ exports }}"
+
+- name: Mount export directory
+  ansible.posix.mount:
+    path: "/srv/NFSoRDMA/{{ item }}"
+    state: remounted
+  loop: "{{ exports }}"
+
+- name: Remove export from /etc/exports
+  ansible.builtin.lineinfile:
+    path: /etc/exports
+    state: absent
+    search_string: '"{{ item }}"'
+  loop: "{{ exports }}"
+
+- name: Write to /etc/exports
+  ansible.builtin.lineinfile:
+    path: /etc/exports
+    line: "/srv/NFSoRDMA/{{ item }}	{{ network_prefix }}.0.0/16(rw,async,insecure,no_root_squash,mp) rdma-*(rw,async,insecure,no_root_squash,m"
+  loop: "{{ exports }}"
+...

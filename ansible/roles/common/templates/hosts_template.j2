@@ -1,0 +1,29 @@
+127.0.0.1	localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1	localhost localhost.localdomain localhost6 localhost6.localdomain6
+{%- for node, node_net_names in machine_host_fabrics.items() %}
+  {%- set host_fields = node.split('-') -%}
+  {%- set group = host_fields[0] -%}
+  {%- set host_ip = offset[group] + (host_fields[1]|int * 5) -%}
+  {% for node_net_name in node_net_names %}
+    {%- set net_part = node_net_name.split('_') -%}
+    {%- if net_part[0] in net -%}
+      {% for net_ip, net_name in net[net_part[0]].items() %}
+        {%- if net_part|length < 2 %}
+
+{{network_prefix}}.{{net_ip}}.{{host_ip}}		{{net_name}}-{{node}}
+
+        {%- else -%}
+          {%- set net_fields = net_name.split('.') -%}
+          {%- if net_fields|length < 2 -%}
+            {%- set net_name = net_fields[0] + "_" + net_part[1] -%}
+          {%- else -%}
+            {%- set net_name = net_fields[0] + "_" + net_part[1] + "." + net_fields[1] -%}
+          {%- endif %}
+
+{{network_prefix}}.{{net_ip}}.{{host_ip + net_part[1]|int}}		{{net_name}}-{{node}}
+
+        {%- endif -%}
+      {% endfor %}
+    {%- endif -%}
+  {% endfor %}
+{% endfor %}

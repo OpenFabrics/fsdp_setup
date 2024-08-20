@@ -1,0 +1,69 @@
+---
+- name: Get dhcp client files
+  become: true
+  ansible.builtin.find:
+    paths: /root
+    pattern: "{{ rdma_host }}.?.*"
+  register: dhcp_client_files
+
+- name: Clean DHCP configurations
+  become: true
+  ansible.builtin.file:
+    path: "{{ dhcp_file }}"
+    state: absent
+  loop: "{{ dhcp_client_files | community.general.json_query('files[*].path') }}"
+  loop_control:
+    loop_var: dhcp_file
+
+- name: Check if ip_addrs has atleast one item
+  ansible.builtin.fail:
+    msg: "IP_addrs is empty"
+  when: ip_addrs0 | length == 0
+
+- name: Setup DHCP Clients
+  ansible.builtin.include_tasks:
+    file: setup_dhcp_client_loop.yml
+  vars:
+    ips: "{{ lookup('vars', 'ip_addrs' + ip_addrs_index | string) }}"
+    hws: "{{ hardware[ip_addrs_index] }}"
+    guids: "{{ gids[ip_addrs_index] | default([]) }}"
+    instance: "{{ ip_addrs_index }}"
+  when: ('ip_addrs' + ip_addrs_index | string) in vars and lookup('vars', 'ip_addrs' + ip_addrs_index | string) | length != 0
+  with_sequence: start=0 end=4
+  loop_control:
+    index_var: ip_addrs_index
+
+- name: Get hosts
+  ansible.builtin.uri:
+    url: "http://builder-00.ofa.iol.unh.edu:8080/hosts.d"
+    method: GET
+  register: hosts_d
+
+- name: Delete hosts
+  ansible.builtin.uri:
+    url: "http://builder-00.ofa.iol.unh.edu:8080/hosts.d/{{ item }}"
+    method: DELETE
+  loop: "{{ hosts_d['json']['fileNames'] | select('match', rdma_host + '.*') }}"
+
+- name: Get dhcp client files
+  become: true
+  ansible.builtin.find:
+    paths: /root
+    pattern: "{{ rdma_host }}.?.*"
+  register: dhcp_client_files
+
+- name: Put host DHCP client configurations to builder-00
+  ansible.builtin.command:
+    cmd: "tftp -m ascii builder-00.ofa.iol.unh.edu -c put {{ item }} hosts.d/{{ item | split('/') | last }}"
+  loop: "{{ dhcp_client_files | community.general.json_query('files[*].path') }}"
+
+- name: Rebuild and restart DHCP
+  ansible.builtin.uri:
+    url: "http://builder-00.ofa.iol.unh.edu:8080/{{ url_dest }}"
+    method: POST
+  loop_control:
+    loop_var: url_dest
+  loop:
+    - rebuildDhcp
+    - restartDhcp4Service
+...

@@ -1,0 +1,53 @@
+---
+rdma_host: node-05
+host_fabrics:
+  - ib0
+  - roce
+  - roce_1
+  - iw
+hardware:
+  - [b8:ce:f6:2d:0e:1f, 00:07:43:4b:86:e0]
+  - [00:0a:f7:31:49:50]
+gids:
+  - [b8:ce:f6:03:00:2d:0e:1e]
+
+clear_default_interfaces: true
+
+interfaces:
+  - dev: lom_1
+    type: ethernet
+    hwaddr: d4:f5:ef:0e:7e:e4
+    dhcp: true
+    defroute: true
+  - dev: lom_2
+    hwaddr: d4:f5:ef:0e:7e:e5
+  - dev: lom_3
+    hwaddr: d4:f5:ef:0e:7e:e6
+  - dev: lom_4
+    hwaddr: d4:f5:ef:0e:7e:e7
+  - dev: bnxt_off
+    hwaddr: 00:0a:f7:31:49:51
+  - dev: cxgb4_off
+    hwaddr: 00:07:43:4b:86:e8
+
+rdma_interfaces:
+  - dev: mlx5
+    fabric: ib0
+    guid: 00:00:04:dc:fe:80:00:00:00:00:00:00:b8:ce:f6:03:00:2d:0e:1e
+    dhcp: true
+  - dev: mlx5
+    fabric: roce
+    guid: b8:ce:f6:2d:0e:1f
+    dhcp: true
+  - dev: bnxt
+    fabric: roce_1
+    guid: 00:0a:f7:31:49:50
+    dhcp: true
+  - dev: cxgb4
+    fabric: iw
+    guid: 00:07:43:4b:86:e0
+    dhcp: true
+
+multicast_route: bnxt0_roce_1
+setup_nfs_mounts: true
+...

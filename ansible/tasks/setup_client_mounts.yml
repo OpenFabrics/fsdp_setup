@@ -1,0 +1,72 @@
+---
+# Parameters: server: str, protocol: str, fstype: str, backstore: str, fabrics: list[str]
+- name: Add configuration to ib_srp.conf
+  ansible.builtin.blockinfile:
+    path: /etc/modprobe.d/ib_srp.conf
+    block: options ib_srp cmd_sg_entries=255 indirect_sg_entries=2048
+    marker: "# {mark} scale options"
+    create: true
+    mode: '0644'
+  when: protocol | lower == "srp"
+
+- name: Check if either SRP or ISER
+  ansible.builtin.fail:
+    msg: "Invalid Protocol {{ protocol }}: Use SRP or ISER"
+  when: protocol | lower not in ["srp", "iser"]
+
+- name: Check if server is in server list
+  ansible.builtin.fail:
+    msg: "Server {{ server }} not in server list"
+  when: server not in (srp_servers if protocol | lower == "srp" else iser_servers)
+
+- name: Check if fstype is xfs or ext4
+  ansible.builtin.fail:
+    msg: "Unsupported fstype {{ fstype }}"
+  when: fstype not in ["xfs", "ext4"]
+
+- name: Record starting number of devices
+  ansible.builtin.set_fact:
+    sd_device_startnum: "{{ ansible_facts | community.general.json_query('devices.keys(@)') | select('match', 'sd.*[a-z]') | length }}"
+    dm_device_startnum: "{{ ansible_facts | community.general.json_query('devices.keys(@)[?starts_with(@, `dm-`)]') | length }}"
+
+- name: Create SRP client devices
+  ansible.builtin.import_tasks:
+    file: create_srp_client_devices.yml
+  when: protocol | lower == "srp"
+
+- name: Create ISER client devices
+  ansible.builtin.import_tasks:
+    file: create_iser_client_devices.yml
+  when: protocol | lower == "iser"
+
+- name: Pause for 10 seconds to login
+  ansible.builtin.pause:
+    seconds: 10
+
+- name: Record end number of devices
+  ansible.builtin.set_fact:
+    sd_device_endnum: "{{ ansible_facts | community.general.json_query('devices.keys(@)') | select('match', 'sd.*[a-z]') | length }}"
+    dm_device_endnum: "{{ ansible_facts | community.general.json_query('devices.keys(@)[?starts_with(@, `dm-`)]') | length }}"
+
+- name: Check if devices was added
+  ansible.builtin.fail:
+    msg: "No devices added, please make sure the requested connection is supported"
+  when: sd_device_startnum == sd_device_endnum
+
+- name: Create fstype filesystem
+  community.general.filesystem:
+    fstype: "{{ fstype }}"
+    state: present
+    dev: "/dev/{{ ansible_facts | community.general.json_query('devices.keys(@)') | select('match', 'sd.*[a-z]')
+      | sort | last if dm_device_startnum == dm_device_endnum else 'dm-' + dm_device_startnum }}"
+
+- name: Mount the server
+  ansible.posix.mount:
+    src: "UUID={{ uuid }}"
+    path: "/srv/{{ server }}/{{ protocol | lower }}-{{ backstore }}"
+    state: present
+    fstype: "{{ fstype }}"
+    opts: "defaults,rw,_netdev"
+    dump: 1
+    passno: 2
+...

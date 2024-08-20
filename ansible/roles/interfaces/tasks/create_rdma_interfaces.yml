@@ -1,0 +1,70 @@
+---
+# Parameters: dev: str, fabric: str, guid: str, dhcp: bool, static_host: int, slave_interfaces: list[dict[str, str]]
+- name: Get subnet
+  ansible.builtin.set_fact:
+    interface_subnet: "{{ fabric | split('_') | first }}"
+
+- name: Get net from subnet
+  ansible.builtin.include_tasks:
+    file: get_net_from_subnet.yml
+  vars:
+    subnet: "{{ interface_subnet }}"
+
+- name: Record starting net variable
+  ansible.builtin.set_fact:
+    start_net: "{{ net | int }}"
+
+- name: Get net from subnet for ib
+  ansible.builtin.include_tasks:
+    file: get_net_from_subnet.yml
+  vars:
+    subnet: "{{ lookup('vars', interface_subnet + '_4k_nets') | first }}"
+  when: interface_subnet in ['ib0', 'ib1']
+
+- name: Record ib0 or ib1 4k start_net variable
+  ansible.builtin.set_fact:
+    start_net_4k: "{{ net | int }}"
+  when: interface_subnet in ['ib0', 'ib1']
+
+- name: Set interface type variable
+  ansible.builtin.set_fact:
+    interface_type: |-
+      {% if 'bond' in dev %}bond
+      {%- elif 'team' in dev %}team
+      {%- elif 'bridge' in dev or dev | regex_search('br\d') %}bridge
+      {%- elif interface_subnet in ['roce', 'iw'] %}ethernet
+      {%- else %}infiniband{% endif %}
+
+- name: Get SYSTEM_MTU or default to 9000
+  ansible.builtin.shell:
+    cmd: "echo ${SYSTEM_MTU}"
+  register: system_mtu
+  when: interface_subnet in ['roce', 'iw']
+  changed_when: false
+  check_mode: false
+
+- name: Set MTU based on subnet
+  ansible.builtin.set_fact:
+    interface_mtu: |-
+      {%- if interface_subnet in ['opa0', 'opa1'] %}10236
+      {%- elif interface_subnet in ['roce', 'iw'] %}{{ system_mtu['stdout'] | default(9000, true) }}{% endif %}
+
+- name: Run through subnets
+  ansible.builtin.include_tasks:
+    file: create_rdma_interfaces_loop.yml
+  loop: "{{ lookup('vars', interface_subnet + '_nets') }}"
+  loop_control:
+    loop_var: subnet
+
+- name: Create slave networks interfaces
+  ansible.builtin.include_tasks:
+    file: create_interface.yml
+  vars:
+    physdev: "{{ item['physdev'] }}"
+    type: ethernet
+    onboot: true
+    hwaddr: "{{ item['hwaddr'] }}"
+    master: "{{ dev }}_{{ fabric }}"
+  when: slave_interfaces != ''
+  loop: "{{ slave_interfaces | default([], true) }}"
+...

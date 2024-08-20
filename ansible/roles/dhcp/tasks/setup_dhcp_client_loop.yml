@@ -1,0 +1,20 @@
+---
+# Used by setup_dhcp_client.yml
+# Parameters: guids: list[str], ips: list[str], hws: list[str], instance: int
+- name: Create client ids
+  ansible.builtin.include_tasks:
+    file: create_client_ids.yml
+  with_items: "{{ guids }}"
+  loop_control:
+    loop_var: gid
+
+- name: Create node DHCP configurations
+  become: true
+  ansible.builtin.template:
+    src: dhcp_client_config.j2
+    dest: "/root/{{ rdma_host }}.{{ instance }}.{{ index }}"
+    mode: '0644'
+  with_sequence: end="{{ [(hws + guids) | length, ib_ids | length] | max }}"
+  loop_control:
+    index_var: index
+...

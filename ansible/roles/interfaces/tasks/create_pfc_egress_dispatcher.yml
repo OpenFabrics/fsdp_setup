@@ -1,0 +1,9 @@
+---
+# Used by create_rdma_interfaces_loop.yml
+# Parameters: parent_interface: str, vlan_interface: str, prois: str
+- name: Create PFC Egress Dispatcher
+  ansible.builtin.template:
+    src: pfc_egress_dispatcher.j2
+    dest: "/etc/NetworkManager/dispatcher.d/98-{{ vlan_interface }}-egress.conf"
+    mode: '0755'
+...

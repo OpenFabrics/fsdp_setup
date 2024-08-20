@@ -1,0 +1,52 @@
+---
+- name: Check if bash_completion.d directory exists
+  ansible.builtin.stat:
+    path: /etc/bash_completion.d
+  register: bash_completion_d_exists
+
+- name: Check if git-prompt.sh script exists
+  ansible.builtin.stat:
+    path: /usr/share/git-core/contrib/completion/git-prompt.sh
+  register: git_prompt_sh_exists
+
+- name: Create git-prompt link
+  ansible.builtin.file:
+    src: /usr/share/git-core/contrib/completion/git-prompt.sh
+    path: /etc/bash_completion.d/git-prompt.sh
+    state: link
+  when: bash_completion_d_exists.stat.exists and git_prompt_sh_exists.stat.exists
+
+- name: Check if rmda.conf exists
+  ansible.builtin.stat:
+    path: /etc/rdma/rdma.conf
+  register: rdma_conf_stat
+
+- name: Update rdma.conf file
+  ansible.builtin.lineinfile:
+    path: /etc/rdma/rdma.conf
+    backrefs: true
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop:
+    - { regexp: 'SRP_LOAD=no', line: 'SRP_LOAD=yes' }
+    - { regexp: 'ISER_LOAD=no', line: 'ISER_LOAD=yes' }
+    - { regexp: 'RDS_LOAD=yes', line: 'RDS_LOAD=no' }
+    - { regexp: 'LOAD_RDS.*', line: 'RDS_LOAD=no' }
+    - { regexp: 'TECH_PREVIEW_LOAD.*', line: 'TECH_PREVIEW_LOAD=yes' }
+  when: rdma_conf_stat.stat.exists
+
+- name: Disable services
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: false
+  register: disabled_service
+  failed_when:
+    - disabled_service.failed == true
+    - '"Could not find the requested service" not in disabled_service.msg'
+  loop:
+    - firewalld
+    - iptables
+    - ip6tables
+    - cpuspeed
+...

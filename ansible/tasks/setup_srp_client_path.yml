@@ -1,0 +1,117 @@
+---
+# Used by create_srp_client_devices.yml
+# Parameters: server: str, fabric: str, backstore: str, path_num: int
+- name: Write to srp_client_tmp_conf
+  ansible.builtin.copy:
+    dest: /etc/rdma/srp_client_tmp_conf
+    content: |
+      a pkey=ffff,dgid={{ srp_dgid[server][fabric] }}
+      d
+    mode: '0644'
+
+- name: Get infiniband umad devices
+  ansible.builtin.find:
+    paths: /dev/infiniband
+    patterns: umad*
+  register: umad_devices
+
+- name: Use srp_daemon on umad devices
+  ansible.builtin.command:
+    cmd: "srp_daemon -n -c -o -f /etc/rdma/srp_client_tmp_conf -d {{ item }}"
+  register: srp_daemon_output
+  when: srp_daemon_output is not defined or srp_daemon_output == ""
+  loop: "{{ umad_devices | community.general.json_query('files[*].path') }}"
+  changed_when: false
+
+- name: Write to srp_client_variables file
+  ansible.builtin.blockinfile:
+    path: /etc/rdma/srp_client_variables
+    block: "{{ srp_daemon_output | community.general.json_query('results[?stdout!=``].stdout | [0]') }}"
+    marker: "# {mark} srp client variables"
+    create: true
+    mode: '0644'
+  when: srp_daemon_output | community.general.json_query('results[?stdout!=``]') | length > 0
+
+- name: Remove srp_client_tmp_conf
+  ansible.builtin.file:
+    path: /etc/rdma/srp_client_tmp_conf
+    state: absent
+
+- name: Exit if srp var file is empty
+  ansible.builtin.fail:
+    msg: SRP client variables file doesn't exist or is empty
+  when: srp_daemon_output | community.general.json_query('results[?stdout!=``]') | length == 0
+
+- name: Get port guid
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      ibstat $(cat /sys/class/infiniband_mad/{{ umad }}/ibdev) $(cat /sys/class/infiniband_mad/{{ umad }}/port) | grep 'Port GUID' | cut -f 2 -d 'x'
+  vars:
+    umad: "{{ community.general.json_query('results[?stdout!=``].item | [0]') | split('/') | last }}"
+  changed_when: false
+  check_mode: false
+  register: port_guid
+
+- name: Get init ext
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      grep initiator_ext /etc/rdma/srp_client_variables | cut -f 2 -d '='
+  changed_when: false
+  check_mode: false
+  register: init_ext
+
+- name: Set sgid variable
+  ansible.builtin.set_fact:
+    sgid: "{{ init_ext['stdout'] }}{{ port_guid['stdout'] }}"
+
+- name: Check if sgid is in server
+  become: true
+  ansible.builtin.command:
+    cmd: "ssh {{ server }} \"targetcli ls /srpt/ib.{{ srp_dgid[server][fabric] }}/acls\""
+  register: server_sigd_check
+  changed_when: false
+
+- name: Add wwn to server
+  become: true
+  ansible.builtin.command:
+    cmd: "ssh {{ server }} \"targetcli /srpt/ib.{{ srp_dgid[server][fabric] }}/acls create ib.{{ sgid }}; targetcli saveconfig\""
+  when: not server_sigd_check.stdout | search(sgid)
+
+- name: Get lun lines
+  become: true
+  ansible.builtin.command:
+    cmd: "ssh {{ server }} \"targetcli ls /srpt/ib.{{ srp_dgid[server][fabric] }}/acls/ib.{{ sgid }}\""
+  register: lun_stat
+  changed_when: false
+
+- name: Create iser backstore if it doesn't exist
+  become: true
+  ansible.builtin.command:
+    cmd: "ssh {{ server }}
+      \"targetcli /srpt/ib.{{ srp_dgid[server][fabric] }}/acls/ib.{{ sgid }} create {{ lun }} /backstores/block/srp-{{ backstore }};
+      targetcli saveconfig\""
+  vars:
+    lun: lun_stat.stdout_lines | length - 1
+  when: not lun_stat.stdout | search('iser-' + backstore)
+
+- name: Write to srp_daemon.conf
+  ansible.builtin.lineinfile:
+    path: /etc/srp_daemon.conf
+    regexp: .*dgid={{ srp_dgid[server][fabric] }}.*
+    line: a pkey=ffff,dgid={{ srp_dgid[server][fabric] }},queue_size=512,max_cmd_per_lun=16
+    mode: '0644'
+
+- name: Remove /etc/rdma/srp_client_variables
+  ansible.builtin.file:
+    path: /etc/rdma/srp_client_variables
+    state: absent
+
+- name: Create server srp backstore
+  ansible.builtin.file:
+    mode: '0755'
+    state: directory
+    path: "/srv/{{ server }}/srp-{{ backstore }}"
+  when: path_num == 0
+...

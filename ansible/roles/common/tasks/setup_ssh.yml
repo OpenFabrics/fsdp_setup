@@ -1,0 +1,37 @@
+---
+- name: Install paramiko
+  ansible.builtin.package: # Put into beaker snippets?
+    name: python3-paramiko
+    state: present
+
+- name: Add to ssh config
+  become: true
+  community.general.ssh_config:
+    host: "*node-*"
+    user: root
+    remote_user: root
+    identity_file: /root/.ssh/root
+    state: present
+
+- name: Generate ssh key
+  become: true
+  community.crypto.openssh_keypair:
+    path: /root/.ssh/root
+    passphrase: ""
+    type: ed25519
+
+- name: Copy root public key
+  become: true
+  ansible.builtin.copy:
+    src: /root/.ssh/root.pub
+    dest: /var/lib/tftpboot/{{ rdma_host }}.pub
+    mode: preserve
+    remote_src: true
+
+- name: Enable and start tftp service
+  become: true
+  ansible.builtin.systemd:
+    name: tftp
+    state: started
+    enabled: true
+...

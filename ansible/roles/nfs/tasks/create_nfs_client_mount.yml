@@ -1,0 +1,34 @@
+---
+# Used by setup_nfs_client_mount.yml
+# Parameters: mounts: list[list[str]]
+
+# This is currently not actually being run on the nodes because of a file import bug.
+# So do we even need this?
+
+- name: Create Fabric dir
+  become: true
+  ansible.builtin.file:
+    state: directory
+    path: "/srv/{{ server }}/{{ fabric }}/{{ version }}-{{ mpt }}-{{ nfs_int_devs[server][fabric] }}"
+    mode: '0755'
+  vars:
+    server: "{{ item[0] }}"
+    fabric: "{{ item[1] }}"
+    version: "{{ item[2] }}"
+    mpt: "{{ item[3] }}"
+  loop: "{{ mounts }}"
+
+- name: Mount Fabric
+  ansible.posix.mount:
+    src: "{{ fabric }}-{{ server }}:/srv/NFSoRDMA/{{ version }}-{{ mpt }}"
+    path: "/srv/{{ server }}/{{ fabric }}/{{ version }}-{{ mpt }}-{{ nfs_int_devs[server][fabric] }}"
+    opts: "{{ nfs_m_opts[version]['opts'] }}"
+    state: present
+    fstype: "{{ nfs_m_opts[version]['fstype'] }}"
+  vars:
+    server: "{{ item[0] }}"
+    fabric: "{{ item[1] }}"
+    version: "{{ item[2] }}"
+    mpt: "{{ item[3] }}"
+  loop: "{{ mounts }}"
+...

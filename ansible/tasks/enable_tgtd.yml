@@ -1,0 +1,72 @@
+---
+# Parameters: iqn: str, rdma_host: str, srp_dgid: dict[dict[int]]
+- name: Install targetcli
+  ansible.builtin.package:
+    name: targetcli
+
+- name: Create srpt configuration
+  ansible.builtin.blockinfile:
+    path: /etc/modprobe.d/ib_srpt.conf
+    block: options ib_srpt srp_max_req_size=8296
+    mode: '0644'
+
+- name: Set targetcli global variables
+  ansible.builtin.command:
+    cmd: "targetcli set global {{ var }}"
+  loop_control:
+    loop_var: var
+  loop:
+    - "auto_save_on_exit=false"
+    - "auto_add_mapped_luns=false"
+
+- name: Enable target service
+  ansible.builtin.systemd:
+    name: target
+    enabled: true
+
+- name: Targetcli clearconfig
+  ansible.builtin.command:
+    cmd: targetcli clearconfig confirm=true
+
+# shopt -s nullglob
+- name: Create iser device
+  ansible.builtin.command:
+    cmd: "targetcli /iscsi create {{ iqn }}:{{ rdma_host }}"
+
+- name: Enable iser device
+  ansible.builtin.command:
+    cmd: "/iscsi/{{ iqn }}:{{ rdma_host }}/tpg1/portals/0.0.0.0:3260 enable_iser true"
+
+- name: Create srpt
+  ansible.builtin.command:
+    cmd: "targetcli /srpt create {{ srp_dgid[rdma_host][int] }}"
+  loop_control:
+    loop_var: int
+  loop: "{{ srp_fabrics[rdma_host] }}"
+
+- name: Configure srpt
+  ansible.builtin.command:
+    cmd: "targetcli /srpt/ib.{{ srp_dgid[rdma_host][int] }} set attribute srp_sq_size=8192"
+  loop_control:
+    loop_var: int
+  loop: "{{ srp_fabrics[rdma_host] }}"
+# shopt -u nullglob
+
+- name: Targetcli save configuraiton
+  ansible.builtin.command:
+    cmd: targetcli saveconfig
+
+- name: Update rdma.conf file
+  ansible.builtin.lineinfile:
+    path: /etc/rdma/rdma.conf
+    backrefs: true
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop:
+    - { regexp: 'SRP_LOAD=no', line: 'SRP_LOAD=yes' }
+    - { regexp: 'ISER_LOAD=no', line: 'ISER_LOAD=yes' }
+
+- name: Run create target restart dispatcher
+  ansible.builtin.include_tasks:
+    file: create_target_restart_dispatcher.yml
+...
