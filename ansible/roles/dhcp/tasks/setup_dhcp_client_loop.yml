@@ -1,6 +1,10 @@
 ---
 # Used by setup_dhcp_client.yml
 # Parameters: guids: list[str], ips: list[str], hws: list[str], instance: int
+- name: Initialize ib_ids variable
+  ansible.builtin.set_fact:
+    ib_ids: []
+
 - name: Create client ids
   ansible.builtin.include_tasks:
     file: create_client_ids.yml

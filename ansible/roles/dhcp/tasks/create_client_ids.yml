@@ -3,7 +3,7 @@
 # Parameters: gid: str
 - name: Check GID length
   ansible.builtin.fail:
-    msg: "Wrong number of elements in GID: {{ ansible_machine_id }}"
+    msg: "Wrong number of elements in GID: {{ gid }}"
   when: gid | length != 23
 
 - name: Set Machine ID variable

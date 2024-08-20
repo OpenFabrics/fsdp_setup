@@ -5,7 +5,6 @@ host_fabrics:
   - roce_1
 hardware:
   - [b8:ce:f6:44:ea:dc]
-gids:
   - [bc:97:e1:70:3d:20]
 
 clear_default_interfaces: true
