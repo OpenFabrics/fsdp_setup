@@ -1,8 +1,13 @@
 ---
-- name: Install paramiko
-  ansible.builtin.package: # Put into beaker snippets?
-    name: python3-paramiko
+- name: Install paramiko and stormssh
+  ansible.builtin.pip:
+    name: "{{ modules }}"
     state: present
+  loop:
+    - paramiko
+    - stormssh
+  loop_control:
+    loop_var: modules
 
 - name: Add to ssh config
   become: true
@@ -12,6 +17,8 @@
     remote_user: root
     identity_file: /root/.ssh/root
     state: present
+  vars:
+    ansible_python_interpreter: /bin/python3
 
 - name: Generate ssh key
   become: true

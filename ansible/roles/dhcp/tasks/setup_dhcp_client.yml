@@ -24,11 +24,11 @@
   ansible.builtin.include_tasks:
     file: setup_dhcp_client_loop.yml
   vars:
-    ips: "{{ lookup('vars', 'ip_addrs' + ip_addrs_index | string) }}"
+    ips: "{{ lookup('vars', 'ip_addrs' + ip_addrs_index | string) | list }}"
     hws: "{{ hardware[ip_addrs_index] }}"
     guids: "{{ gids[ip_addrs_index] | default([]) }}"
     instance: "{{ ip_addrs_index }}"
-  when: ('ip_addrs' + ip_addrs_index | string) in vars and lookup('vars', 'ip_addrs' + ip_addrs_index | string) | length != 0
+  when: ('ip_addrs' + ip_addrs_index | string) in vars and lookup('vars', 'ip_addrs' + ip_addrs_index | string) | list | length != 0
   with_sequence: start=0 end=4
   loop_control:
     index_var: ip_addrs_index

@@ -6,10 +6,10 @@ host_fabrics:
   - roce_1
   - iw
 hardware:
-  - [b8:ce:f6:2d:0e:1f, 00:07:43:4b:86:e0]
-  - [00:0a:f7:31:49:50]
+  - ["b8:ce:f6:2d:0e:1f", "00:07:43:4b:86:e0"]
+  - ["00:0a:f7:31:49:50"]
 gids:
-  - [b8:ce:f6:03:00:2d:0e:1e]
+  - ["b8:ce:f6:03:00:2d:0e:1e"]
 
 clear_default_interfaces: true
 

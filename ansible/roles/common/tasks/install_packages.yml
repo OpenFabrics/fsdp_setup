@@ -49,4 +49,9 @@
     - iptables
     - ip6tables
     - cpuspeed
+
+- name: Install jmespath
+  ansible.builtin.pip:
+    name: jmespath
+    state: present
 ...

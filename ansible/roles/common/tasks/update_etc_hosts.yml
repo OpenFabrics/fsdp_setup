@@ -8,7 +8,7 @@
     machine_host_fabrics: "{{ machine_host_fabrics | combine({node: hostvars[item].host_fabrics}) }}"
   vars:
     node: "{{ item | split('.') | first }}"
-  loop: "{{ hostvars.keys() | select('match', 'node-*') }}"
+  with_items: "{{ hostvars.keys() | select('match', 'node-*') }}"
 
 - name: Update etc hosts
   become: true

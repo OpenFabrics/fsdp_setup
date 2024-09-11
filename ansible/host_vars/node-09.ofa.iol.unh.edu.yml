@@ -8,13 +8,13 @@ host_fabrics:
   - roce_1
   - roce_2
 hardware:
-  - [34:80:0d:b4:9c:96, 34:80:0d:b4:9c:97]
-  - [b8:ce:f6:2c:5f:df]
-  - [b8:ce:f6:2c:5f:e3]
+  - ["34:80:0d:b4:9c:96", "34:80:0d:b4:9c:97"]
+  - ["b8:ce:f6:2c:5f:df"]
+  - ["b8:ce:f6:2c:5f:e3"]
 
 gids:
-  - [b8:ce:f6:03:00:2c:5f:de]
-  - [b8:ce:f6:03:00:2c:5f:e2]
+  - ["b8:ce:f6:03:00:2c:5f:de"]
+  - ["b8:ce:f6:03:00:2c:5f:e2"]
 
 
 clear_default_interfaces: true

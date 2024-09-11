@@ -106,15 +106,29 @@
   when: dhcp != '' or static != ''
 
 - name: Edit udev rules
-  ansible.builtin.lineinfile:
-    path: "/etc/udev/rules.d/70-persistent-{{ 'ipoib' if type == 'infiniband' else 'net' }}.rules"
-    regexp: ".*{{ match_addr }}.*"
-    line: 'ACTION=="add", SUBSYSTEM=="net", DRIVERS=="?*", ATTR{type}=="32", ATTR{address}=="?*{{ match_addr }}", NAME="{{ physdev }}"'
-    create: true
-    mode: '0644'
-  vars:
-    match_addr: "{{ hwaddr[-23:] if type == 'infiniband' else hwaddr }}"
   when:
     - pkey | default('') == ''
     - hwaddr | default('') != ''
+  block:
+    - name: Edit infiniband udev rules
+      ansible.builtin.lineinfile:
+        path: "/etc/udev/rules.d/70-persistent-ipoib.rules"
+        regexp: ".*{{ hwaddr[-23:] }}.*"
+        line: 'ACTION=="add", SUBSYSTEM=="net", DRIVERS=="?*", ATTR{type}=="32", ATTR{address}=="?*{{ hwaddr[-23:] }}", NAME="{{ physdev }}"'
+        create: true
+        mode: '0644'
+      when: type == 'infiniband'
+
+    - name: Edit net udev rules
+      ansible.builtin.lineinfile:
+        path: "/etc/udev/rules.d/70-persistent-net.rules"
+        regexp: ".*{{ hwaddr }}.*"
+        line: 'ACTION=="add", SUBSYSTEM=="net", DRIVERS=="?*", ATTR{address}=="{{ hwaddr }}", NAME="{{ physdev }}"'
+        create: true
+        mode: '0644'
+      when: type != 'infiniband'
+
+- name: Trigger udev rules
+  ansible.builtin.command:
+    cmd: udevadm trigger --type=devices --action=add
 ...

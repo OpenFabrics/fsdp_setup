@@ -4,8 +4,8 @@ host_fabrics:
   - roce
   - roce_1
 hardware:
-  - [b8:ce:f6:44:ea:de]
-  - [bc:97:e1:70:2c:80]
+  - ["b8:ce:f6:44:ea:de"]
+  - ["bc:97:e1:70:2c:80"]
 
 clear_default_interfaces: true
 
