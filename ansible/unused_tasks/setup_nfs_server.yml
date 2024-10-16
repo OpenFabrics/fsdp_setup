@@ -1,0 +1,23 @@
+---
+- name: Configure nfs
+  ansible.builtin.lineinfile:
+    path: /etc/sysconfig/nfs
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.replace }}"
+  loop:
+    - { regexp: '#RDMA_PORT=.*', replace: 'RDMA_PORT=20049' }
+    - { regexp: '.*RPCNFSDARGS=.*$', replace: 'RPCNFSDARGS="--rdma=20049"' }
+
+- name: Configure rdma
+  ansible.builtin.lineinfile:
+    path: /etc/rdma/rdma.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.replace }}"
+  loop:
+    - { regexp: 'NFSoRDMA_LOAD=.*', replace: 'NFSoRDMA_LOAD=yes' }
+    - { regexp: 'NFSoRDMA_PORT=.*', replace: 'NFSoRDMA_PORT=20049' }
+
+- name: Enable NFS server
+  ansible.builtin.import_tasks:
+    file: enable_nfs_server.yml
+...

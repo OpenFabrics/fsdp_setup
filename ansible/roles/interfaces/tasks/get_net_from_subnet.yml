@@ -1,0 +1,7 @@
+---
+# Used by create_rdma_interfaces.yml and create_rdma_interfaces_loop.yml
+# Parameters: subnet
+- name: Get net from subnet
+  ansible.builtin.set_fact:
+    net: "{{ rdma_subnets[subnet] | default(subnet | split('.') | last) }}"
+...

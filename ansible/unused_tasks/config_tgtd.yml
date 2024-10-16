@@ -1,0 +1,22 @@
+---
+# Parameters: name: str, block_dev: str, share_type: str
+- name: Create block
+  ansible.builtin.command:
+    cmd: "targetcli /backstores/block create {{ share_type }}-{{ name }} {{ block_dev }}"
+
+- name: Iser create luns
+  ansible.builtin.command:
+    cmd: "targetcli /iscsi/{{ iqn }}:{{ rdma_host }}/tpg1/luns create storage_object=/backstores/block/{{ share_type }}-{{ name }}"
+  when: share_type | lower == "iser"
+
+- name: Srp create luns
+  ansible.builtin.command:
+    cmd: "targetcli /srpt/ib.{{ srp_dgid[rdma_host][int] }}/luns create storage_object=/backstores/block/{{ share_type }}-{{ name }}"
+  loop: "{{ srp_fabrics[rdma_host] }}"
+  loop_control:
+    loop_var: int
+
+- name: Save configuration
+  ansible.builtin.command:
+    cmd: targetcli saveconfig
+...

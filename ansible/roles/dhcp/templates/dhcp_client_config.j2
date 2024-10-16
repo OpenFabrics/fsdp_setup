@@ -1,0 +1,11 @@
+host {{ rdma_host }}.{{ instance }}.{{ index }} {
+	fixed-address {{ ips | join(',') }};
+{% if index < hws | length %}
+	hardware ethernet {{ hws[index] }};
+{% elif index - (hws | length) < guids | length %}
+	hardware infiniband {{ guids[index - (hws | length)] }};
+{% endif %}
+{% if index < ib_ids | length %}
+	option dhcp-client-identifier={{ ib_ids[index] }};
+{% endif %}
+}

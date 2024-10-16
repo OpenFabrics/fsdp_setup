@@ -1,0 +1,84 @@
+---
+- name: Check if efibootmgr is executable
+  ansible.builtin.stat:
+    path: /usr/sbin/efibootmgr
+  register: efibootmgr
+
+- name: Get EFI state
+  ansible.builtin.command:
+    cmd: efibootmgr
+  changed_when: false
+  register: efibootmgr_output
+  when: efibootmgr.stat.executable
+  check_mode: false
+
+- name: Save EFI state
+  ansible.builtin.copy:
+    dest: /root/EFI_SETUP_POST_INSTALL.TXT
+    content: "{{ efibootmgr_output['stdout'] }}"
+    mode: '0644'
+  when: efibootmgr.stat.executable
+
+- name: Check if grub2-mkconfig is executable
+  ansible.builtin.stat:
+    path: /usr/sbin/grub2-mkconfig
+  register: grub2_mkconfig
+
+- name: Use Grub2
+  when:
+    - not efibootmgr.stat.executable
+    - grub2_mkconfig.stat.executable
+  block:
+    - name: Backup default grub file
+      ansible.builtin.copy:
+        src: /etc/default/grub
+        dest: /etc/default/grub.orig
+        mode: preserve
+        remote_src: true
+
+    - name: Replace GRUB_TIMEOUT
+      ansible.builtin.lineinfile:
+        path: /etc/default/grub
+        regexp: ^GRUB_TIMEOUT=(?!10$).*$
+        line: GRUB_TIMEOUT=10
+
+    - name: Get grub file content
+      ansible.builtin.slurp:
+        src: /etc/default/grub
+      register: grub_content
+
+    - name: Replace GRUB_CMDLINE_LINUX
+      ansible.builtin.lineinfile:
+        path: /etc/default/grub
+        regexp: ^GRUB_CMDLINE_LINUX.*$
+        line: GRUB_CMDLINE_LINUX="{{ host_grub_options | default('') }} console=tty0 rd_NO_PLYMOUTH {{ gcl }}"
+      vars:
+        gcl: "{{ grub_content['content'] | b64decode
+          | regex_findall('GRUB_CMDLINE_LINUX=\\\"(.*)\\\"$', '\\1')
+          | default([''], true) | first
+          | replace(host_grub_options | default(''), '') if host_grub_options | default(false)
+          | replace('console=tty0 ', '')
+          | replace('rd_NO_PLYMOUTH ', '') | trim }}"
+      notify: Generate Grub2 configuration file
+
+    - name: Install Grub2 if x86
+      ansible.builtin.command:
+        cmd: grub2-install --recheck --force /dev/sda
+      when: ansible_architecture == "x86_64"
+
+- name: Check if grub conf exists
+  ansible.builtin.stat:
+    path: /root/grub/grub.conf
+  register: grub_conf
+
+- name: Use grub - Remove terminal line if system vendor is Dell
+  ansible.builtin.lineinfile:
+    path: /boot/grub/grub.conf
+    state: absent
+    regexp: '^terminal.*$'
+  when:
+    - not efibootmgr.stat.executable
+    - not grub2_mkconfig.stat.executable
+    - grub_conf.stat.exists
+    - ansible_system_vendor == "DELL"
+...

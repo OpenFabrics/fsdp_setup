@@ -1,0 +1,55 @@
+---
+# Used by create_rdma_interfaces.yml
+# Parameters: dev: str, fabric: str, interface_type: str, interface_mtu: int, connected_mode: bool,
+#             start_net_4k: int, start_net: int, net: int, guid: str, dhcp: bool, static_host: int
+- name: Get net from subnet
+  ansible.builtin.include_tasks:
+    file: get_net_from_subnet.yml
+
+- name: Set MTU variable if still not set
+  ansible.builtin.set_fact:
+    interface_mtu: |-
+      {%- if connected_mode is defined and connected_mode != '' %}65520
+      {%- else %}
+      {%- if net | int < start_net_4k | int %}2044{% else %}4092{% endif %}
+      {%- endif %}
+  when: interface_type == 'infiniband' and interface_mtu | length == 0
+
+- name: Create Interface
+  ansible.builtin.include_tasks:
+    file: create_interface.yml
+  vars:
+    physdev: "{{ dev }}_{{ fabric }}"
+    type: "{{ interface_type }}"
+    onboot: true
+    hwaddr: "{{ None if dev | regex_search('(bond|team|bridge|br\\d)') else guid }}"
+    mac: "{{ guid if dev | regex_search('(bond|team|bridge|br\\d)') else None }}"
+    mtu: "{{ interface_mtu }}"
+    pkey: "{{ net if net != start_net and interface_type == 'infiniband' else None }}"
+    static: "{% if static_host != '' %}{{ network_prefix }}.{{ net }}.{{ static_host }}{% endif %}"
+    # dhcp is automatically passed in
+  when: net == start_net or interface_type == 'infiniband'
+
+- name: Create ethernet, bond, or team interface
+  when: net != start_net and interface_type in ['ethernet', 'bond', 'team']
+  block:
+    - name: Create Interface
+      ansible.builtin.include_tasks:
+        file: create_interface.yml
+      vars:
+        physdev: "{{ dev }}_{{ fabric }}"
+        type: "vlan"
+        onboot: true
+        vlan: "{{ net }}"
+        static: "{% if static_host != '' %}{{ network_prefix }}.{{ net }}.{{ static_host }}{% endif %}"
+        # dhcp is automatically passed in
+
+    - name: Create pfc Egress Dispatcher
+      ansible.builtin.include_tasks:
+        file: "create_pfc_egress_dispatcher.yml"
+      vars:
+        parent_interface: "{{ dev }}_{{ fabric }}"
+        vlan_interface: "{{ dev }}_{{ fabric }}.{{ net }}"
+        prois: "{{ net | int - start_net | int }}"
+      when: fabric != 'iw'
+...

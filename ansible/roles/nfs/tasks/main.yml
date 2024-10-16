@@ -1,0 +1,6 @@
+---
+- name: Setup nfs client mounts
+  ansible.builtin.import_tasks:
+    file: setup_nfs_client_mounts.yml
+  when: setup_nfs_mounts is defined and setup_nfs_mounts
+...

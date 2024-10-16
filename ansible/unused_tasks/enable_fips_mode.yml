@@ -1,0 +1,32 @@
+---
+- name: Disable prelinking
+  ansible.builtin.replace:
+    path: /etc/sysconfig/prelink
+    regexp: PRELINKING=.*
+    replace: PRELINKING=no
+
+- name: Revert all prelinked binaries
+  ansible.builtin.command:
+    cmd: prelink -au
+
+- name: Install dracut-fips
+  become: true
+  ansible.builtin.package:
+    name: dracut-fips
+    state: present
+
+- name: Enable FIPS mode
+  become: true
+  ansible.builtin.command:
+    cmd: fips-mode-setup --enable
+
+- name: Regenerage grub.cfg
+  become: true
+  ansible.builtin.command:
+    cmd: grub2-mkconfig -o /boot/grub2/grub.cfg
+
+- name: Recreate initramfs file
+  become: true
+  ansible.builtin.command:
+    cmd: dracut -fv
+...

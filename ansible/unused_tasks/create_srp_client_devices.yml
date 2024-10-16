@@ -1,0 +1,77 @@
+---
+# Parameters: server: str, backstore: str, fabrics: list[str]
+- name: Fail if "server" is not in SRP_SERVERS
+  ansible.builtin.fail:
+    msg: "{{ server }} is not an option"
+  when: server not in SRP_SERVERS
+
+- name: Enable and stop srpd service
+  become: true
+  ansible.builtin.systemd:
+    name: srpd
+    enabled: true
+    state: stopped
+
+- name: Remove "d" from /etc/srp_daemon.conf
+  ansible.builtin.lineinfile:
+    path: /etc/srp_daemon.conf
+    state: absent
+    regexp: ^d$
+
+- name: Setup SRP client path
+  ansible.builtin.include_tasks:
+    file: setup_srp_client_path.yml
+
+- name: Setup srp client path for fabrics
+  ansible.builtin.include_tasks:
+    file: setup_srp_client_path.yml
+  when: fabric in host_fabrics and frabic in srp_fabrics[server]
+  loop:
+    - "{{ paths | default(srp_fabrics[server]) }}"
+  loop_control:
+    loop_var: fabric
+    index_var: num_paths
+
+- name: Stat /etc/multipath.conf
+  ansible.builtin.stat:
+    path: /etc/multipath.conf
+  register: etc_multipath_stat
+
+- name: Find the multipath config file
+  ansible.builtin.find:
+    paths: /usr/share/doc/
+    patterns: multipath.conf
+    recurse: true
+  register: multipath_files
+  when: not etc_multipath_stat.stat.exists
+
+- name: Enable and start multipathd service
+  ansible.builtin.copy:
+    src: "{{ found_files.files | first }}"
+    dest: /etc/multipath.conf
+    mode: preserve
+    remote_src: true
+  when:
+    - num_paths > 1
+    - not etc_multipath_stat.stat.exists
+    - multipath_files.matched > 0
+
+- name: Enable and start multipathd service
+  become: true
+  ansible.builtin.systemd:
+    name: multipathd
+    enabled: true
+    state: started
+  when: num_paths > 1
+
+- name: Add d to srp_daemon.conf
+  ansible.builtin.lineinfile:
+    path: /etc/srp_daemon.conf
+    line: d
+
+- name: Start srpd service
+  become: true
+  ansible.builtin.systemd:
+    name: srpd
+    state: started
+...

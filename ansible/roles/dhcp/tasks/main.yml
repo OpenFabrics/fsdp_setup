@@ -1,0 +1,11 @@
+---
+- name: Create fixed addresses
+  ansible.builtin.include_tasks:
+    file: create_fixed_addresses.yml
+  vars:
+    fabrics: "{{ host_fabrics }}"
+
+- name: Setup DHCP client
+  ansible.builtin.import_tasks:
+    file: setup_dhcp_client.yml
+...

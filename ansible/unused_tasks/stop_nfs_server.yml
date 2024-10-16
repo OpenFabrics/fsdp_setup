@@ -1,0 +1,14 @@
+---
+- name: Stop nfs related services
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+  loop:
+    - nfs-server
+    - nfs
+    - nfs-rdma
+    - nfs-idmap
+    - nfs-lock
+    - nfs-mountd
+...

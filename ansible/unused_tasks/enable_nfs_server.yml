@@ -1,0 +1,14 @@
+---
+- name: Enable nfs related services
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+  loop:
+    - nfs-server
+    - nfs
+    - nfs-rdma
+    - nfs-idmap
+    - nfs-lock
+    - nfs-mountd
+...

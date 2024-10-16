@@ -1,0 +1,124 @@
+---
+domain_name: ofa.iol.unh.edu
+domain_name_servers:
+  - 10.12.2.254
+network_prefix: 172.31
+lab_networks: 10.12.0.0/16
+ib0_2k_nets:
+  - ib0
+  - ib0.2
+ib0_4k_nets:
+  - ib0.4
+  - ib0.6
+ib0_nets: "{{ ib0_2k_nets + ib0_4k_nets }}"
+
+# InfiniBand Fabric 2
+# ib1_2k_nets:
+#   - ib1
+#   - ib1.3
+#   - ib1.5
+#   - ib1.7
+# ib1_4k_nets:
+#   - ib1.9
+#   - ib1.11
+#   - ib1.13
+# ib1_nets: "{{ ib1_2k_nets + ib1_2k_nets }}"
+
+# OmniPath Fabric 1
+opa0_nets:
+  - opa0
+  - opa0.22
+  - opa0.24
+
+# OmniPath Fabric 2
+# opa1_nets:
+#   - opa1
+#   - opa1.23
+#   - opa1.25
+
+# ROCE Fabric 1
+roce_nets:
+  - roce
+  - roce.43
+  - roce.45
+
+# iWARP Fabric 1
+iw_nets:
+  - iw
+  - iw.51
+  - iw.52
+
+all_nets: "{{ ib0_nets + opa0_nets + roce_nets + iw_nets }}"
+
+rdma_subnets:
+  ib0: 0
+  ib1: 1
+  opa0: 20
+  opa1: 21
+  roce: 40
+  iw: 50
+
+# wwns
+srp_servers:
+  - builder-00
+
+iser_servers:
+  - builder-00
+
+nvme_servers:
+  - builder-00
+
+iqn: iqn.1994-05.edu.unh.iol.ofa
+
+iser_fabrics:
+  builder-00:
+    - ib0
+    - opa0
+    - roce
+
+srp_fabrics:
+  builder-00:
+    - ib0
+
+srp_dgid:
+  builder-00:
+    ib0: fe80000000000000f4521403007bcba1
+
+# nfs-mounts
+nfs_servers:
+  - builder-00
+
+nfs_protos:
+  builder-00:
+    - v3
+    - v4.0
+    - v4.1
+
+nfs_fabrics:
+  builder-00:
+    - ib0
+    - opa0
+    - roce
+
+nfs_int_devs:
+  builder-00:
+    ib0: mlx5
+    opa0: hfi1
+    roce: mlx5
+
+nfs_m_points:
+  builder-00:
+    - xfs
+    - ext4
+
+nfs_m_opts:
+  v3:
+    fstype: nfs
+    opts: "defaults,rw,rdma,port=20049,hard,intr,nfsvers=3,noauto"
+  v4.0:
+    fstype: nfs4
+    opts: "defaults,rw,rdma,port=20049,hard,intr,nfsvers=4.0,noauto"
+  v4.1:
+    fstype: nfs4
+    opts: "defaults,rw,rdma,port=20049,hard,intr,nfsvers=4.1,noauto"
+...

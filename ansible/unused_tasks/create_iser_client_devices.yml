@@ -1,0 +1,48 @@
+---
+# Parameters: server: str, backstore: str, paths: list[str]
+- name: Check if server is in ISER Server
+  ansible.builtin.fail:
+    msg: "Server not in ISER_server list"
+  when: server not in iser_servers
+
+- name: Setup iser client path for fabrics
+  ansible.builtin.include_tasks:
+    file: setup_iser_client_path.yml
+  loop:
+    - "{{ paths | default(iser_fabrics[server]) | intersect(host_fabrics) | intersect(iser_fabrics[server]) }}"
+  loop_control:
+    loop_var: fabric
+    index_var: num_paths
+
+- name: Stat /etc/multipath.conf
+  ansible.builtin.stat:
+    path: /etc/multipath.conf
+  register: etc_multipath_stat
+
+- name: Find the multipath config file
+  ansible.builtin.find:
+    paths: /usr/share/doc/
+    patterns: multipath.conf
+    recurse: true
+  register: multipath_files
+  when: not etc_multipath_stat.stat.exists
+
+- name: Enable and start multipathd service
+  ansible.builtin.copy:
+    src: "{{ found_files.files | first }}"
+    dest: /etc/multipath.conf
+    mode: preserve
+    remote_src: true
+  when:
+    - num_paths > 1
+    - not etc_multipath_stat.stat.exists
+    - multipath_files.matched > 0
+
+- name: Enable and start multipathd service
+  become: true
+  ansible.builtin.systemd:
+    name: multipathd
+    enabled: true
+    state: started
+  when: num_paths > 1
+...

@@ -1,0 +1,20 @@
+---
+- name: Check if limits.d directory exists
+  ansible.builtin.stat:
+    path: /etc/security/limits.d
+  register: limits_d_exists
+
+- name: Write to rdma.conf
+  ansible.builtin.copy:
+    src: rdma.conf
+    dest: /etc/security/limits.d/rdma.conf
+    mode: preserve
+  when: limits_d_exists.stat.exists
+
+- name: Write to limits.conf
+  ansible.builtin.blockinfile:
+    path: /etc/security/limits.conf
+    block: "{{ lookup('ansible.builtin.file', 'rdma.conf') }}"
+    marker: "# {mark} RDMA Tuning"
+  when: not limits_d_exists.stat.exists
+...

@@ -1,0 +1,10 @@
+---
+- name: Set Ether and InfiniBand Macs variable
+  ansible.builtin.set_fact:
+    ether_macs: "{{ ansible_facts | dict2items | community.general.json_query('[?value.macaddress && value.type==`ether`].value.macaddress') | unique }}"
+    ib_macs: "{{ ansible_facts | dict2items | community.general.json_query('[?value.macaddress && value.type==`infiniband`].value.macaddress') | unique }}"
+
+- name: Set Macs variable
+  ansible.builtin.set_fact:
+    macs: "{{ ether_macs + ib_macs }}"
+...

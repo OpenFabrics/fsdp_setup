@@ -1,0 +1,14 @@
+---
+# Parameters: interface: str
+- name: Ensure the dispatcher directory exists
+  ansible.builtin.file:
+    path: /etc/NetworkManager/dispatcher.d
+    state: directory
+    mode: '0755'
+
+- name: Create multicast dispatcher
+  ansible.builtin.template:
+    src: multicast_dispatcher.j2
+    dest: /etc/NetworkManager/dispatcher.d/99-multicast.conf
+    mode: '0755'
+...

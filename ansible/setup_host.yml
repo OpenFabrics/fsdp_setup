@@ -1,0 +1,14 @@
+---
+- name: Setup host / master playbook
+  hosts: all
+  vars:
+    ansible_python_interpreter: /bin/python3
+  become: true
+  any_errors_fatal: true
+  gather_facts: true
+  roles:
+    - role: common
+    - role: interfaces
+    - role: dhcp
+    - role: nfs
+...

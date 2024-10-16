@@ -1,0 +1,6 @@
+---
+# Triggered when grub file is changed
+- name: Generate Grub2 configuration file
+  ansible.builtin.command:
+    cmd: grub2-mkconfig -o /boot/grub2/grub.cfg
+...

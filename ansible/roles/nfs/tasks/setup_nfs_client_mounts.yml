@@ -1,0 +1,10 @@
+---
+- name: Iterate over NFS servers fabrics, protos, and points
+  ansible.builtin.include_tasks:
+    file: create_nfs_client_mount.yml
+  vars:
+    mounts: "{{ [server] | product(nfs_fabrics[server], nfs_protos[server], nfs_m_points[server]) | selectattr('1', 'in', host_fabrics) }}"
+  with_items: "{{ nfs_servers | reject('equalto', rdma_host) }}"
+  loop_control:
+    loop_var: server
+...
