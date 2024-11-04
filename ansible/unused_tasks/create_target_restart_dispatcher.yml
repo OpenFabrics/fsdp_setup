@@ -1,0 +1,17 @@
+---
+- name: Create target restart dispatcher
+  ansible.builtin.lineinfile:
+    path: /etc/NetworkManager/dispatcher.d/99-restart-target.conf
+    line: |
+      #!/bin/sh
+      interface=$1
+      status=$2
+      case $status in
+      up)
+      	systemctl restart target
+      	;;
+      esac
+    mode: '0755'
+    create: true
+
+...

@@ -1,0 +1,29 @@
+---
+# Used by setup_dhcp_client_loop.yml
+# Parameters: gid: str
+- name: Check GID length
+  ansible.builtin.fail:
+    msg: "Wrong number of elements in GID: {{ gid }}"
+  when: gid | length != 23
+
+- name: Set Machine ID variable
+  ansible.builtin.set_fact:
+    machine_id: |-
+      {%- set pairs = [] -%}
+      {%- for i in range(0, 32, 2) -%}{{ pairs.append(ansible_machine_id[i : i + 2]) }}{%- endfor -%}
+      {{ pairs | join(':') }}
+
+- name: Initialize ib_ids variable
+  ansible.builtin.set_fact:
+    ib_ids: []
+
+- name: Add infiniband ids to array
+  ansible.builtin.set_fact:
+    ib_ids: "{{ ib_ids + [ib_id] }}"
+  with_items:
+    - "ff:00:00:00:00:00:02:00:00:02:c9:00:{{ gid }}"
+    - "ff:{{ gid[12:] }}:00:04:{{ machine_id }}"
+    - "20:{{ gid }}"
+  loop_control:
+    loop_var: ib_id
+...

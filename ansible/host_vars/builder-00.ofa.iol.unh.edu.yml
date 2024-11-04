@@ -1,0 +1,49 @@
+---
+rdma_host: builder-00
+host_fabrics:
+  - ib0
+  - opa0
+  - iw
+  - roce
+# Network interface mac address
+hardware:
+  - ["b8:ce:f6:2d:0d:2e"]
+# Infiniband GUIDs
+gids:
+  - ["b8:ce:f6:03:00:2d:0d:2f", "00:11:75:09:01:c7:88:70"]
+
+clear_rdma_interfaces: true
+
+rdma_interfaces:
+  - dev: mlx5
+    fabric: ib0
+    guid: 00:00:02:75:fe:80:00:00:00:00:00:00:b8:ce:f6:03:00:2d:0d:2f
+    static_host: 252
+  - dev: hfi1
+    fabric: opa0
+    guid: 80:81:00:02:fe:80:00:00:00:00:00:01:00:11:75:09:01:c7:88:70
+    static_host: 252
+  - dev: mlx5
+    fabric: roce
+    guid: b8:ce:f6:2d:0d:2e
+    static_host: 252
+
+interfaces:
+  - dev: mlx5_roce
+    type: vlan
+    onboot: true
+    static: 172.31.50.252
+    vlan: 50
+  - dev: mlx5_roce
+    type: vlan
+    onboot: true
+    static: 172.31.51.252
+    vlan: 51
+  - dev: mlx5_roce
+    type: vlan
+    onboot: true
+    static: 172.31.52.252
+    vlan: 52
+
+multicast_route: mlx5_ib0
+...

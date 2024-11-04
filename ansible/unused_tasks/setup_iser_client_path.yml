@@ -1,0 +1,51 @@
+---
+# Used by create_iser_client_devices.yml
+# Parameters: server: str, fabric: str, backstore: str, path_num: int
+- name: Check if wwn is in server
+  become: true
+  ansible.builtin.command:
+    cmd: "ssh {{ server }} \"targetcli ls /iscsi/{{ iqn }}:{{ server }}/tpg1/acls\""
+  register: server_wwn_check
+  changed_when: false
+
+- name: Add wwn to server
+  become: true
+  ansible.builtin.command:
+    cmd: "ssh {{ server }} \"targetcli /iscsi/{{ iqn }}:{{ server }}/tpg1/acls create {{ iqn }}:{{ rdma_host }}; targetcli saveconfig\""
+  when: not server_wwn_check.stdout | search(iqn + ":" + rdma_host)
+
+- name: Get lun lines
+  become: true
+  ansible.builtin.command:
+    cmd: "ssh {{ server }} \"targetcli ls /iscsi/{{ iqn }}:{{ server }}/tpg1/acls/{{ iqn }}:{{ rdma_host }}\""
+  register: lun_stat
+  changed_when: false
+
+- name: Create iser backstore if it doesn't exist
+  become: true
+  ansible.builtin.command:
+    cmd: "ssh {{ server }}
+      \"targetcli /iscsi/{{ iqn }}:{{ server }}/tpg1/acls/{{ iqn }}:{{ rdma_host }} create {{ lun }} /backstores/block/iser-{{ backstore }};
+      targetcli saveconfig\""
+  vars:
+    lun: lun_stat.stdout_lines | length - 1
+  when: not lun_stat.stdout | search('iser-' + backstore)
+
+- name: Log out
+  community.general.open_iscsi:
+    portal: "{{ fabric }}-{{ server_part | split('-', 1) | last }}"
+    login: false
+
+- name: Redo Discovery
+  community.general.open_iscsi:
+    portal: "{{ fabric }}-{{ server_part | split('-', 1) | last }}"
+    discover: true
+    login: true
+
+- name: Create server iser backstore
+  ansible.builtin.file:
+    mode: '0755'
+    state: directory
+    path: "/srv/{{ server }}/iser-{{ backstore }}"
+  when: path_num == 0
+...

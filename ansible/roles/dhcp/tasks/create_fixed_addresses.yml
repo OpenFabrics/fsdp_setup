@@ -1,0 +1,28 @@
+---
+# Parameters: fabrics: list[str]
+- name: Initialize ip_addrs varaibles
+  ansible.builtin.set_fact:
+    ip_addrs0: []
+    ip_addrs1: []
+    ip_addrs2: []
+    ip_addrs3: []
+    ip_addrs4: []
+
+- name: Get hosts file content
+  ansible.builtin.slurp:
+    src: /etc/hosts
+  register: hosts_content
+
+- name: Set IP addresses
+  ansible.builtin.include_tasks:
+    file: set_ip_addrs_loop.yml
+  vars:
+    fabric: "{{ item[0] | split('_') | first }}"
+    instance: "{% if item[0] | split('_') | length == 1 %}0{% else %}{{ item[0] | split('_') | last }}{% endif %}"
+    subnet: "{{ item[1] }}"
+    net_part: "{{ item[1] | split('.') | first }}"
+    vlan_part: "{% if item[1] | split('.') | length != 1 %}.{{ item[1] | split('.') | last }}{% endif %}"
+    host_file_content: "{{ hosts_content['content'] | b64decode }}"
+  when: fabric in net_part
+  loop: "{{ fabrics | product(all_nets) }}"
+...

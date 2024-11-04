@@ -1,0 +1,8 @@
+---
+# Parameters: rdma_host: str
+- name: Set hostname
+  ansible.builtin.replace:
+    path: /etc/sysconfig/network
+    regexp: HOSTNAME=.*
+    replace: HOSTNAME={{ rdma_host }}.ofa.iol.unh.edu
+...

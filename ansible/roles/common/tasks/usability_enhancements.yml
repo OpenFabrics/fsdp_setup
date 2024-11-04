@@ -1,0 +1,44 @@
+---
+- name: Extract vimsetup.tgz to /root
+  ansible.builtin.unarchive:
+    src: vimsetup.tgz
+    dest: /root
+
+- name: Copy config files
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "~/.{{ item }}"
+    mode: preserve
+  loop:
+    - bashrc
+    - dir_colors
+
+- name: Check if DRP script exists
+  ansible.builtin.stat:
+    path: /etc/kernel/postinst.d/51-dracut-rescue-postinst.sh
+  register: drp_script
+
+- name: Rename DRP script
+  ansible.builtin.copy:
+    src: /etc/kernel/postinst.d/51-dracut-rescue-postinst.sh
+    dest: /etc/kernel/postinst.d/51-dracut-rescue-postinst.sh~
+    mode: preserve
+    remote_src: true
+  when: drp_script.stat.exists
+
+- name: Remove original DRP script
+  ansible.builtin.file:
+    path: /etc/kernel/postinst.d/51-dracut-rescue-postinst.sh
+    state: absent
+  when: drp_script.stat.exists
+
+- name: Write to .bash_profile
+  ansible.builtin.blockinfile:
+    path: /root/.bash_profile
+    block: |
+      export GIT_PS1_SHOWDIRTYSTATE=yes
+      export PS1='[\u@\h \W$(__git_ps1 " (%s)")]$ '
+    marker: "# {mark} ps1 options"
+    mode: '0644'
+    create: true
+...

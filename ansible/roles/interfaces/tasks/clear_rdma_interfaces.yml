@@ -1,0 +1,7 @@
+---
+- name: Remove all RDMA network interfaces
+  community.general.nmcli:
+    conn_name: "{{ item }}"
+    state: absent
+  with_items: "{{ ansible_interfaces | select('match', '^(cxgb|ib|qib|mlx|mthca|usnic|ocrdma).*') }}"
+...

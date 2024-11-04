@@ -1,0 +1,53 @@
+---
+- name: Clear RDMA interfaces
+  ansible.builtin.import_tasks:
+    file: clear_rdma_interfaces.yml
+  when: clear_rdma_interfaces is defined and clear_rdma_interfaces
+
+- name: Clear default interfaces
+  ansible.builtin.import_tasks:
+    file: clear_default_interfaces.yml
+  when: clear_default_interfaces is defined and clear_default_interfaces
+
+- name: Create interfaces
+  ansible.builtin.include_tasks:
+    file: create_interface.yml
+  loop: "{{ interfaces }}"
+  vars:
+    physdev: "{{ item['dev'] | default(None) }}"
+    type: "{{ item['type'] | default(None) }}"
+    onboot: "{{ item['onboot'] | default(None) }}"
+    static: "{{ item['static'] | default(None) }}"
+    dhcp: "{{ item['dhcp'] | default(None) }}"
+    mtu: "{{ item['mtu'] | default(None) }}"
+    vlan: "{{ item['vlan'] | default(None) }}"
+    pkey: "{{ item['pkey'] | default(None) }}"
+    connected_mode: "{{ item['connected_mode'] | default(None) }}"
+    hwaddr: "{{ item['hwaddr'] | default(None) }}"
+    defroute: "{{ item['defroute'] | default(None) }}"
+    mac: "{{ item['mac'] | default(None) }}"
+    master: "{{ item['master'] | default(None) }}"
+    stp: "{{ item['stp'] | default(None) }}"
+    priority: "{{ item['priority'] | default(None) }}"
+  when: interfaces is defined
+
+- name: Create RDMA interfaces
+  ansible.builtin.include_tasks:
+    file: create_rdma_interfaces.yml
+  loop: "{{ rdma_interfaces }}"
+  vars:
+    dev: "{{ item['dev'] | default(None) }}"
+    fabric: "{{ item['fabric'] | default(None) }}"
+    guid: "{{ item['guid'] | default(None) }}"
+    dhcp: "{{ item['dhcp'] | default(None) }}"
+    static_host: "{{ item['static_host'] | default(None) }}"
+    slave_interfaces: "{{ item['slave_interfaces'] | default(None) }}"
+  when: rdma_interfaces is defined
+
+- name: Create multicast route
+  ansible.builtin.include_tasks:
+    file: create_multicast_route.yml
+  vars:
+    interface: "{{ multicast_route }}"
+  when: multicast_route is defined
+...

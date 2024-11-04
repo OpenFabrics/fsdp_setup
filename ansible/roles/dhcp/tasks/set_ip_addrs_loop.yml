@@ -1,0 +1,11 @@
+---
+# Used by create_fixed_addresses.yml
+# Parameters: instance: int, subnet: str, net_part: str, vlan_part: str, host_file_content: str
+- name: Set ip_addr variables
+  ansible.builtin.set_fact:
+    "ip_addrs{{ instance }}": "{{ vars['ip_addrs' + instance] + [ip_addr] }}"
+  vars:
+    ip_addr: "{{ host_file_content
+      | regex_search('^.*' + (net_part + '_' + instance + vlan_part if instance != '0' else subnet) + '-' + rdma_host + '.*$', multiline=True)
+      | split() | first }}"
+...

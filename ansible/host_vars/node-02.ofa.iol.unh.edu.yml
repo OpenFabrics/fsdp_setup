@@ -1,0 +1,47 @@
+---
+rdma_host: node-02
+host_fabrics:
+  - opa0
+  - iw
+  - roce
+hardware:
+  - ["b4:96:91:a4:05:c0", "f8:f2:1e:bd:4d:d4"]
+gids:
+  - ["00:11:75:09:01:c7:8a:f4"]
+
+clear_default_interfaces: true
+
+interfaces:
+  - dev: lom_1
+    type: ethernet
+    hwaddr: 48:df:37:ca:ea:64
+    dhcp: true
+    defroute: true
+  - dev: lom_2
+    hwaddr: 48:df:37:ca:ea:65
+  - dev: lom_3
+    hwaddr: 48:df:37:ca:ea:66
+  - dev: lom_4
+    hwaddr: 48:df:37:ca:ea:67
+  - dev: e810_off
+    hwaddr: b4:96:91:a4:05:c1
+  - dev: x722_off
+    hwaddr: f8:f2:1e:bd:4d:d5
+
+rdma_interfaces:
+  - dev: hfi1
+    fabric: opa0
+    guid: 80:81:00:02:fe:80:00:00:00:00:00:00:00:11:75:09:01:c7:8a:f4
+    dhcp: true
+  - dev: e810
+    fabric: roce
+    guid: b4:96:91:a4:05:c0
+    dhcp: true
+  - dev: x722
+    fabric: iw
+    guid: f8:f2:1e:bd:4d:d4
+    dhcp: true
+
+multicast_route: hfi1_opa0
+setup_nfs_mounts: true
+...

@@ -1,0 +1,134 @@
+---
+# Used by create_rdma_interfaces.yml, create_rdma_interfaces_loop.yml, and for node config
+# Parameters: physdev: str, type: str, onboot: bool, static(ipaddr): str, dhcp: bool, mtu: int,
+#             vlan: int, pkey: int, connected_mode: bool, hwaddr: str, defroute: bool, mac: str,
+#             master: str, stp: bool, priority: int
+- name: Calculate devname
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      printf '%04x' $(( 0x8000 | 0x{{ pkey }} ))
+  when: pkey | default('') != ''
+  changed_when: false
+  check_mode: false
+  register: devname_number
+
+- name: Set connection name variable
+  ansible.builtin.set_fact:
+    devname: "{{ physdev }}{% if pkey | default('') != '' %}.{{ devname_number['stdout'] }}{% elif type == 'vlan' %}.{{ vlan }}{% endif %}"
+
+- name: Create interface
+  community.general.nmcli:
+    state: present
+    conn_name: "{{ devname }}"
+    ifname: "{{ devname }}"
+    type: "{{ type | default('ethernet', true) }}"
+
+    # autoconnect: defaults to false
+    # If onboot isn't set, it will be true if defroute is true and false if defroute is false
+    autoconnect: "{{ onboot if onboot | default(false, true) else onboot | default(true, true) and defroute | default(false, true) }}"
+
+    mtu: "{{ mtu | int if mtu | default(false, true) else omit }}"
+    transport_mode: "{{ 'connected' if connected_mode | default(false, true) else omit }}"
+    never_default4: "{% if static != '' %}{{ omit }}{% else %}{{ not (dhcp != '' and defroute | default(false, true)) }}{% endif %}"
+    method4: "{% if static != '' %}manual{% elif dhcp != '' and dhcp %}auto{% else %}disabled{% endif %}"
+    ip4: "{{ static + '/24' if static != '' else omit }}"
+
+    dns4_ignore_auto: "{{ not defroute | default(false, true) }}"
+    dns4_search: "{{ ['lab.bos.redhat.com', 'bos.redhat.com', 'devel.redhat.com', 'redhat.com'] if defroute | default(false, true) and dhcp != '' else omit }}"
+    gw4_ignore_auto: "{{ false if dhcp != '' or static != '' else true }}"
+
+    may_fail4: "{{ false if dhcp != '' or static != '' else true }}"
+    method6: "{{ 'auto' if dhcp != '' or static != '' else 'ignore' }}"
+    dns6_ignore_auto: "{{ true if dhcp != '' or static != '' else omit }}"
+    gw6_ignore_auto: "{{ false if dhcp != '' or static != '' else omit }}"
+
+    # If ethernet
+    master: "{{ master | default(omit, true) }}"
+
+    # If bridge
+    stp: "{{ stp | default(omit, true) }}"
+    priority: "{{ priority | default(omit, true) }}"
+
+    # If bond
+    miimon: "{% if type == 'bond' %}100{% else %}{{ omit }}{% endif %}"
+    mode: "{% if type == 'bond' %}802.3ad{% else %}{{ omit }}{% endif %}"
+    downdelay: "{% if type == 'bond' %}0{% else %}{{ omit }}{% endif %}"
+    updelay: "{% if type == 'bond' %}0{% else %}{{ omit }}{% endif %}"
+    slave_type: "{% if type in ['bond', 'team'] %}{{ type }}{% else %}{{ omit }}{% endif %}"
+
+    mac: "{{ mac | default(omit, true) }}"
+
+    # If vlan
+    vlandev: "{{ physdev if vlan | default(false, true) else omit }}"
+    vlanid: "{{ vlan | default(omit, true) }}"
+    egress: |-
+      {%- if vlan is defined and vlan == '43' %}0:3,1:3,2:3,3:3,4:3,5:3,6:3,7:3
+      {%- elif vlan is defined and vlan == '45' %}0:5,1:5,2:5,3:5,4:5,5:5,6:5,7:5
+      {%- else %}{{ omit }}{% endif %}
+  register: create_interface_result
+  failed_when:
+    - "'Exists' not in create_interface_result"
+    - "'rc' in create_interface_result"
+    - create_interface_result.rc != 0
+    - "'No suitable device found' not in create_interface_result.msg"
+
+# Make up for missing nmcli module functionality
+- name: Set p-key and parent
+  ansible.builtin.command:
+    cmd: "nmcli con modify {{ devname }} infiniband.p-key 0x{{ devname_number['stdout'] }} infiniband.parent {{ physdev }}"
+  when: pkey | default('') != ''
+
+- name: Set autoconnect_slaves
+  ansible.builtin.command:
+    cmd: "nmcli con modify {{ devname }} connection.autoconnect-slaves 1"
+  when: type == "bond"
+
+- name: Set team settings
+  ansible.builtin.command:
+    cmd: "nmcli con modify {{ devname }} team.config '{\"runner\": {\"name\": \"lacp\", \"active\": true, \"fast_rate\": true, \
+      \"tx_balancer\": {\"name\": \"basic\"}, \"tx_hash\": [\"eth\", \"ipv4\", \"ipv6\"]}, \"link_watch\": {\"name\": \"ethtool\"}}'"
+  when: type == "team"
+
+- name: Set ethernet mac address
+  ansible.builtin.command:
+    cmd: "nmcli con modify {{ devname }} 802-3-ethernet.mac-address {{ hwaddr }}"
+  when: type | default('ethernet', true) == "ethernet"
+
+- name: Set infiniband mac address
+  ansible.builtin.command:
+    cmd: "nmcli con modify {{ devname }} infiniband.mac-address {{ hwaddr }}"
+  when: type == "infiniband"
+
+- name: Set misc settings
+  ansible.builtin.command:
+    cmd: "nmcli con modify {{ devname }} ipv6.never-default yes ipv6.may-fail yes"
+  when: dhcp != '' or static != ''
+
+- name: Edit udev rules
+  when:
+    - pkey | default('') == ''
+    - hwaddr | default('') != ''
+  block:
+    - name: Edit infiniband udev rules
+      ansible.builtin.lineinfile:
+        path: "/etc/udev/rules.d/70-persistent-ipoib.rules"
+        regexp: ".*{{ hwaddr[-23:] }}.*"
+        line: 'ACTION=="add", SUBSYSTEM=="net", DRIVERS=="?*", ATTR{type}=="32", ATTR{address}=="?*{{ hwaddr[-23:] }}", NAME="{{ physdev }}"'
+        create: true
+        mode: '0644'
+      when: type == 'infiniband'
+
+    - name: Edit net udev rules
+      ansible.builtin.lineinfile:
+        path: "/etc/udev/rules.d/70-persistent-net.rules"
+        regexp: ".*{{ hwaddr }}.*"
+        line: 'ACTION=="add", SUBSYSTEM=="net", DRIVERS=="?*", ATTR{address}=="{{ hwaddr }}", NAME="{{ physdev }}"'
+        create: true
+        mode: '0644'
+      when: type != 'infiniband'
+
+- name: Trigger udev rules
+  ansible.builtin.command:
+    cmd: udevadm trigger --type=devices --action=add
+...

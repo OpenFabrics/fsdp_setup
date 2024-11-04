@@ -1,0 +1,41 @@
+---
+- name: Initialize host_fabrics variable
+  ansible.builtin.set_fact:
+    machine_host_fabrics: {}
+
+- name: Set host_fabrics variable
+  ansible.builtin.set_fact:
+    machine_host_fabrics: "{{ machine_host_fabrics | combine({node: hostvars[item].host_fabrics}) }}"
+  vars:
+    node: "{{ item | split('.') | first }}"
+  with_items: "{{ hostvars.keys() | select('match', 'node-*') }}"
+
+- name: Update etc hosts
+  become: true
+  ansible.builtin.template:
+    src: hosts_template.j2
+    dest: /etc/hosts
+    mode: preserve
+  vars:
+    offset:
+      node: 0
+      builder: 252
+    net:
+      ib0:
+        '0': ib0
+        '2': ib0.2
+        '4': ib0.4
+        '6': ib0.6
+      opa0:
+        '20': opa0
+        '22': opa0.22
+        '24': opa0.24
+      roce:
+        '40': roce
+        '43': roce.43
+        '45': roce.45
+      iw:
+        '50': iw
+        '51': iw.51
+        '52': iw.52
+...

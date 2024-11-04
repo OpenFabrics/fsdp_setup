@@ -1,0 +1,9 @@
+[Unit]
+Description=Run FSDP Setup Ansible Playbook
+
+[Service]
+Type=oneshot
+ExecStart=/root/fsdp_setup/ansible/run.sh
+
+[Install]
+WantedBy=multi-user.target
