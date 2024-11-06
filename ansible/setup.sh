@@ -13,4 +13,4 @@ mv /usr/local/bin/ansible* /usr/bin
 
 cd /root/fsdp_setup/ansible
 
-ansible-playbook -i inventory --diff -v setup_host.yml --limit "$(hostname)" --connection=local
+ansible-playbook -i inventory --diff -v setup_host.yml --limit "$(cat /etc/hostname)" --connection=local
